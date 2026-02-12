@@ -27,8 +27,8 @@ const App: React.FC = () => {
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
-      const localState = await fetchFullState();
-      setState(localState);
+      const remoteState = await fetchFullState();
+      setState(remoteState);
       setIsLoading(false);
     };
     loadData();
@@ -128,9 +128,9 @@ const App: React.FC = () => {
       const opt = {
         margin: 0,
         filename: `${q.customerName.replace(/\s+/g, '_')}_${q.id}.pdf`,
-        image: { type: 'jpeg', quality: 1.0 }, // Maximum quality
+        image: { type: 'jpeg', quality: 1.0 }, 
         html2canvas: { 
-          scale: 4, // Higher scale for Ultra-HD PDF quality
+          scale: 4, 
           useCORS: true, 
           logging: false,
           letterRendering: true,
@@ -138,14 +138,14 @@ const App: React.FC = () => {
           scrollY: 0,
           x: 0,
           y: 0,
-          windowWidth: 794, // Standard A4 width at 96 DPI
+          windowWidth: 794, 
           backgroundColor: '#ffffff'
         },
         jsPDF: { 
           unit: 'mm', 
           format: 'a4', 
           orientation: 'portrait', 
-          compress: false, // Disable compression for lossless quality
+          compress: false, 
           putOnlyUsedFonts: true,
           precision: 16
         },
@@ -168,7 +168,7 @@ const App: React.FC = () => {
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="flex flex-col items-center">
           <Loader2 className="w-10 h-10 text-red-600 animate-spin mb-4" />
-          <p className="text-gray-500 font-medium">Loading Application Data...</p>
+          <p className="text-gray-500 font-medium">Connecting to Supabase...</p>
         </div>
       </div>
     );
@@ -624,14 +624,6 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
         'Panel Type': 'TOPCON G2R',
         'Pricing ID Link': '',
         'BOM Template ID Link': ''
-      },
-      {
-        'Heading/Name': '5kW HYBRID SOLAR POWER GENERATING SYSTEM',
-        'Project Type': 'Hybrid Subsidy',
-        'Structure Type': '1 Meter Flat roof structure',
-        'Panel Type': 'MONO PERC Bifacial',
-        'Pricing ID Link': '',
-        'BOM Template ID Link': ''
       }
     ];
 
@@ -648,13 +640,6 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
         'Project Type': 'Ongrid Subsidy',
         'Structure Type': '2 Meter Flat roof structure',
         'Panel Type': 'TOPCON G2R',
-        'Enabled': 'True'
-      },
-      {
-        'Term Text': 'Net metering charges are based on actual KSEB invoices.',
-        'Project Type': 'Ongrid Subsidy',
-        'Structure Type': '1 Meter Flat roof structure',
-        'Panel Type': 'MONO PERC Bifacial',
         'Enabled': 'True'
       }
     ];

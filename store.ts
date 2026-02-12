@@ -1,8 +1,8 @@
 
 import { AppState, Term, BOMItem, ProductPricing, Quotation, User, ProductDescription, WarrantyPackage } from './types';
+import { supabase } from './supabaseClient';
 
-const SETTINGS_KEY = 'solar_quote_pro_settings';
-const QUOTATIONS_KEY = 'solar_quote_pro_quotations';
+const SETTINGS_KEY = 'global';
 
 const DEFAULT_TERMS: Term[] = [
   { id: '1', text: 'Structure height will be 1 to 3 feet from floor level.', enabled: true, order: 1, projectType: 'Ongrid Subsidy', structureType: '2 Meter Flat roof structure', panelType: 'TOPCON G2R' },
@@ -16,9 +16,6 @@ const DEFAULT_TERMS: Term[] = [
 const DEFAULT_BOM_3KW: BOMItem[] = [
   { id: '1', product: 'Solar Panels', uom: 'Nos', quantity: '8', specification: '550Wp Mono PERC', make: 'Adani/Waaree' },
   { id: '2', product: 'On-Grid Inverter', uom: 'No', quantity: '1', specification: '3kW String Inverter', make: 'Growatt/Solis' },
-  { id: '3', product: 'DC SPD', uom: 'Nos', quantity: '2', specification: 'Type II 600V', make: 'Citel/Suntree' },
-  { id: '4', product: 'DC Fuse', uom: 'Nos', quantity: '2', specification: '15A/1000V', make: 'Mersen' },
-  { id: '5', product: 'DC Cable', uom: 'Mtrs', quantity: '30', specification: '4sqmm multi strand', make: 'Polycab/Siechem' },
   { id: '10', product: 'Lightning Arrester', uom: 'Set', quantity: '1', specification: 'Solid Copper 1M', make: 'Standard' },
 ];
 
@@ -30,19 +27,6 @@ const DEFAULT_PRICING: ProductPricing[] = [
     structureType: '2 Meter Flat roof structure',
     panelType: 'TOPCON G2R',
     actualPlantCost: 185000,
-    discount: 0,
-    subsidyAmount: 78000,
-    ksebCharges: 0,
-    additionalMaterialCost: 0,
-    customizedStructureCost: 0
-  },
-  {
-    id: 'p5kw',
-    name: '5kW Standard Pricing',
-    projectType: 'Ongrid Subsidy',
-    structureType: '2 Meter Flat roof structure',
-    panelType: 'TOPCON G2R',
-    actualPlantCost: 295000,
     discount: 0,
     subsidyAmount: 78000,
     ksebCharges: 0,
@@ -66,13 +50,7 @@ const DEFAULT_WARRANTIES: WarrantyPackage[] = [
 ];
 
 const DEFAULT_USERS: User[] = [
-  {
-    id: 'admin-01',
-    name: 'Administrator',
-    username: 'admin',
-    password: 'admin123',
-    role: 'admin'
-  }
+  { id: 'admin-01', name: 'Administrator', username: 'admin', password: 'admin123', role: 'admin' }
 ];
 
 export const INITIAL_STATE: AppState = {
@@ -84,9 +62,7 @@ export const INITIAL_STATE: AppState = {
     phone: '+91 9876543210',
     email: 'info@kondaas.com',
     website: 'www.kondaas.com',
-    logo: '', 
-    seal: '',
-    gstin: '32AAAAA0000A1Z5'
+    logo: '', seal: '', gstin: '32AAAAA0000A1Z5'
   },
   bank: {
     companyName: 'Kondaas Automation Private Limited',
@@ -106,8 +82,7 @@ export const INITIAL_STATE: AppState = {
     { id: '3kw-std', name: '3kW Standard On-Grid', items: DEFAULT_BOM_3KW }
   ],
   productDescriptions: [
-    { id: '1', name: '3kW ON-GRID SOLAR POWER GENERATING SYSTEM', projectType: 'Ongrid Subsidy', structureType: '2 Meter Flat roof structure', panelType: 'TOPCON G2R', defaultPricingId: 'p3kw', defaultBomTemplateId: '3kw-std' },
-    { id: '2', name: '5kW ON-GRID SOLAR POWER GENERATING SYSTEM', projectType: 'Ongrid Subsidy', structureType: '2 Meter Flat roof structure', panelType: 'TOPCON G2R', defaultPricingId: 'p5kw', defaultBomTemplateId: '' }
+    { id: '1', name: '3kW ON-GRID SOLAR POWER GENERATING SYSTEM', projectType: 'Ongrid Subsidy', structureType: '2 Meter Flat roof structure', panelType: 'TOPCON G2R', defaultPricingId: 'p3kw', defaultBomTemplateId: '3kw-std' }
   ],
   users: DEFAULT_USERS,
   quotations: [],
@@ -116,12 +91,31 @@ export const INITIAL_STATE: AppState = {
 
 export const fetchFullState = async (): Promise<AppState> => {
   try {
-    const savedSettings = localStorage.getItem(SETTINGS_KEY);
-    const savedQuotations = localStorage.getItem(QUOTATIONS_KEY);
+    // 1. Fetch Settings
+    const { data: settingsRow, error: settingsError } = await supabase
+      .from('settings')
+      .select('*')
+      .eq('singleton_key', SETTINGS_KEY)
+      .single();
 
-    const settings = savedSettings ? JSON.parse(savedSettings) : {};
-    const parsedQuotes: Quotation[] = savedQuotations ? JSON.parse(savedQuotations) : [];
-    
+    if (settingsError && settingsError.code !== 'PGRST116') {
+      console.error("Error fetching settings:", settingsError);
+    }
+
+    // 2. Fetch Quotations
+    const { data: quotesRows, error: quotesError } = await supabase
+      .from('quotations')
+      .select('*');
+
+    if (quotesError) {
+      console.error("Error fetching quotations:", quotesError);
+    }
+
+    const parsedQuotes: Quotation[] = (quotesRows || []).map(row => ({
+      ...row.data,
+      id: row.id // Ensure ID matches the row key
+    }));
+
     let maxId = 1000;
     parsedQuotes.forEach(q => {
       const match = q.id.match(/(?:KAPL|KLMNRE)-(\d+)/); 
@@ -132,64 +126,78 @@ export const fetchFullState = async (): Promise<AppState> => {
     });
 
     return {
-      company: settings.company || INITIAL_STATE.company,
-      bank: settings.bank || INITIAL_STATE.bank,
-      productPricing: settings.productPricing || INITIAL_STATE.productPricing,
-      warrantyPackages: settings.warrantyPackages || INITIAL_STATE.warrantyPackages || DEFAULT_WARRANTIES,
-      terms: settings.terms || INITIAL_STATE.terms,
-      bomTemplates: settings.bomTemplates || INITIAL_STATE.bomTemplates,
-      productDescriptions: settings.productDescriptions || INITIAL_STATE.productDescriptions,
-      users: settings.users || INITIAL_STATE.users,
+      company: settingsRow?.company || INITIAL_STATE.company,
+      bank: settingsRow?.bank || INITIAL_STATE.bank,
+      productPricing: settingsRow?.pricing || INITIAL_STATE.productPricing,
+      warrantyPackages: settingsRow?.warranty || INITIAL_STATE.warrantyPackages,
+      terms: settingsRow?.terms || INITIAL_STATE.terms,
+      bomTemplates: settingsRow?.bom_templates || INITIAL_STATE.bomTemplates,
+      productDescriptions: settingsRow?.product_descriptions || INITIAL_STATE.productDescriptions,
+      users: settingsRow?.users || INITIAL_STATE.users,
       quotations: parsedQuotes,
       nextId: maxId + 1
     };
 
   } catch (err) {
-    console.error("Unexpected error fetching local state:", err);
+    console.error("Unexpected error fetching data from Supabase:", err);
     return INITIAL_STATE;
   }
 };
 
 export const saveSettingsToLocal = async (state: AppState): Promise<boolean> => {
   try {
-    const payload = {
-      company: state.company,
-      bank: state.bank,
-      productPricing: state.productPricing,
-      warrantyPackages: state.warrantyPackages,
-      terms: state.terms,
-      bomTemplates: state.bomTemplates,
-      productDescriptions: state.productDescriptions,
-      users: state.users
-    };
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(payload));
+    const { error } = await supabase
+      .from('settings')
+      .upsert({
+        singleton_key: SETTINGS_KEY,
+        company: state.company,
+        bank: state.bank,
+        pricing: state.productPricing,
+        warranty: state.warrantyPackages,
+        terms: state.terms,
+        bom_templates: state.bomTemplates,
+        product_descriptions: state.productDescriptions,
+        users: state.users
+      });
+
+    if (error) throw error;
     return true;
   } catch (err) {
-    console.error("Error saving settings to local storage:", err);
+    console.error("Error saving settings to Supabase:", err);
     return false;
   }
 };
 
 export const saveQuotationToLocal = async (quotation: Quotation, allQuotes: Quotation[]) => {
   try {
-    const existingIdx = allQuotes.findIndex(q => q.id === quotation.id);
-    let updatedQuotes;
-    if (existingIdx >= 0) {
-      updatedQuotes = allQuotes.map(q => q.id === quotation.id ? quotation : q);
-    } else {
-      updatedQuotes = [...allQuotes, quotation];
-    }
-    localStorage.setItem(QUOTATIONS_KEY, JSON.stringify(updatedQuotes));
+    const { error } = await supabase
+      .from('quotations')
+      .upsert({
+        id: quotation.id,
+        customer_name: quotation.customerName,
+        customer_details: {
+          mobile: quotation.mobile,
+          address: quotation.address,
+          email: quotation.email
+        },
+        data: quotation
+      });
+
+    if (error) throw error;
   } catch (err) {
-    console.error("Error saving quotation to local storage:", err);
+    console.error("Error saving quotation to Supabase:", err);
   }
 };
 
 export const deleteQuotationFromLocal = async (id: string, allQuotes: Quotation[]) => {
   try {
-    const updatedQuotes = allQuotes.filter(q => q.id !== id);
-    localStorage.setItem(QUOTATIONS_KEY, JSON.stringify(updatedQuotes));
+    const { error } = await supabase
+      .from('quotations')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
   } catch (err) {
-    console.error("Error deleting quotation from local storage:", err);
+    console.error("Error deleting quotation from Supabase:", err);
   }
 };
