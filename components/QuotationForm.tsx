@@ -32,8 +32,15 @@ const QuotationForm: React.FC<Props> = ({ state, currentUser, editData, onSave, 
     projectType: editData?.projectType || 'Ongrid Subsidy',
     structureType: editData?.structureType || '2 Meter Flat roof structure',
     panelType: editData?.panelType || 'TOPCON G2R',
-    pricing: editData?.pricing || { ...state.productPricing[0] },
-    bom: editData?.bom || (state.bomTemplates[0]?.items || []),
+    pricing: editData?.pricing || { 
+      actualPlantCost: 0,
+      discount: 0,
+      subsidyAmount: 0,
+      ksebCharges: 0,
+      additionalMaterialCost: 0,
+      customizedStructureCost: 0
+    },
+    bom: editData?.bom || [],
     systemDescription: editData?.systemDescription || '',
     createdBy: editData?.createdBy || currentUser.id,
     createdByName: editData?.createdByName || currentUser.name,
@@ -236,6 +243,18 @@ const QuotationForm: React.FC<Props> = ({ state, currentUser, editData, onSave, 
               <label className="block text-xs uppercase font-black text-gray-400 mb-1">KSEB Charges (₹)</label>
               <input type="number" value={formData.pricing.ksebCharges} onChange={e => setFormData({ ...formData, pricing: { ...formData.pricing, ksebCharges: Number(e.target.value) } })} className="w-full border p-2 rounded shadow-inner bg-white font-bold" />
             </div>
+            {formData.structureType === 'Without Structure' && (
+              <div>
+                <label className="block text-xs uppercase font-black text-red-600 mb-1">Customized Structure Cost (₹)</label>
+                <input 
+                  type="number" 
+                  value={formData.pricing.customizedStructureCost} 
+                  onChange={e => setFormData({ ...formData, pricing: { ...formData.pricing, customizedStructureCost: Number(e.target.value) } })} 
+                  className="w-full border-2 border-red-100 p-2 rounded shadow-inner bg-white font-bold focus:border-red-500 outline-none" 
+                  placeholder="Enter structure cost"
+                />
+              </div>
+            )}
             <div className="bg-black text-white p-6 rounded flex items-center justify-between col-span-1 md:col-span-2 lg:col-span-3">
               <div>
                 <p className="text-[10px] uppercase font-black text-primary-red mb-1 tracking-widest">{isNonSubsidy ? 'TOTAL INVESTMENT PAYABLE' : 'NET INVESTMENT PAYABLE'}</p>

@@ -48,7 +48,7 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
     <div className="text-center w-52">
       <div className="h-16 border-b border-gray-100 mb-1 relative">
          {state.company.seal ? (
-           <img src={state.company.seal} alt="Seal" className={`absolute ${imageBottomClass} left-1/2 -translate-x-1/2 h-20 w-auto object-contain z-10`} />
+           <img src={state.company.seal} alt="Seal" className={`absolute ${imageBottomClass} left-1/2 -translate-x-1/2 h-16 w-auto object-contain z-10`} />
          ) : (
            <span className="absolute bottom-1 left-1/2 -translate-x-1/2 text-[5pt] text-red-100 uppercase font-black tracking-widest whitespace-nowrap">Official Seal</span>
          )}
@@ -63,6 +63,7 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
   const grandTotal = afterSubsidy + quotation.pricing.ksebCharges + quotation.pricing.customizedStructureCost + quotation.pricing.additionalMaterialCost;
 
   const isWithoutStructure = quotation.structureType === 'Without Structure';
+  const hasCustomizedStructureCost = (quotation.pricing.customizedStructureCost || 0) > 0;
 
   const QualityAssuranceSection = () => {
     const isHybrid = quotation.projectType === 'Hybrid Subsidy' || quotation.projectType === 'Hybrid Non Subsidy';
@@ -101,6 +102,14 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
       {/* PAGE 1: EXECUTIVE SUMMARY & PRICING */}
       <div className="a4-page relative">
         <PageLogo />
+        
+        {/* Quotation No & Date at absolute position in the top margin area */}
+        <div className="absolute top-4 right-16 text-right z-30">
+          <span className="text-[4.5pt] font-black text-white bg-black px-1.5 py-0.5 rounded uppercase tracking-[0.1em] shadow-sm">Quotation No & Date</span>
+          <p className="text-[9pt] font-black mt-0.5 text-red-600 tracking-tight leading-none">{quotation.id}</p>
+          <p className="text-[5.5pt] text-gray-400 font-bold uppercase mt-0.5 tracking-wider">{format(new Date(quotation.date), 'dd MMMM yyyy')}</p>
+        </div>
+
         <div className="flex justify-between items-start border-b-2 border-black pb-3 mb-3 w-full mt-4">
           <div className="flex flex-col gap-1 items-start flex-1 pt-2">
             <div className="flex-1">
@@ -108,10 +117,12 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
               <p className="text-[6pt] text-red-600 font-black tracking-[0.2em] uppercase mt-1 mb-3 whitespace-nowrap">ADANI SOLAR AUTHORIZED CHANNEL PARTNER</p>
               
               <div className="space-y-0.5">
+                {/* Regional Branch 1 */}
                 <p className="text-[7pt] text-gray-700 font-bold uppercase leading-tight">
                   <span className="text-black font-black text-[6pt] tracking-widest">REGIONAL BRANCHE 1: </span>
                   {state.company.regionalOffice1}
                 </p>
+                {/* Regional Branch 2 on a separate line below Branch 1 */}
                 {state.company.regionalOffice2 && (
                   <p className="text-[7pt] text-gray-700 font-bold uppercase leading-tight">
                     <span className="text-black font-black text-[6pt] tracking-widest">REGIONAL BRANCHE 2: </span>
@@ -122,6 +133,10 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
                   <span className="text-black font-black text-[6pt] tracking-widest">HEAD OFFICE: </span>
                   {state.company.headOffice}
                 </p>
+                {/* Contact line after Head Office */}
+                <p className="text-[7pt] text-gray-700 font-bold uppercase leading-tight pt-0.5">
+                  <span className="text-black font-black text-[6pt] tracking-widest whitespace-nowrap">company website: {state.company.website} | mail id: {state.company.email} | Sales Support Contact: {state.company.phone}</span>
+                </p>
               </div>
 
               <div className="mt-4 border-t border-gray-100 pt-2">
@@ -131,37 +146,28 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
               </div>
             </div>
           </div>
-          <div className="text-right text-[7pt] font-semibold text-gray-500 leading-snug space-y-1 ml-4 pt-1">
-            <p className="text-black font-black uppercase tracking-widest text-[8pt] mb-1">{state.company.website}</p>
-            <p>{state.company.email}</p>
-            <p className="text-gray-400">{state.company.phone}</p>
-          </div>
         </div>
 
         <div className="mb-4 w-full">
-          <div className="flex justify-between items-end mb-4">
-            <div className="flex-1">
-               <h4 className="text-[6pt] font-black text-gray-400 uppercase tracking-widest mb-2">Customer Details</h4>
-               <p className="text-[14pt] font-[900] text-black uppercase leading-tight">{quotation.customerName}</p>
-            </div>
-            <div className="text-right">
-              <span className="text-[7pt] font-black text-white bg-black px-3 py-1 rounded-md uppercase tracking-[0.15em] shadow-sm">Quotation No & Date</span>
-              <p className="text-[14pt] font-black mt-2 text-red-600 tracking-tight leading-none">{quotation.id}</p>
-              <p className="text-[8pt] text-gray-400 font-bold uppercase mt-1 tracking-widest">{format(new Date(quotation.date), 'dd MMMM yyyy')}</p>
-            </div>
+          <div className="flex items-baseline gap-3 mb-3">
+             <h4 className="text-[7.5pt] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">CUSTOMER NAME :</h4>
+             <p className="text-[14pt] font-[900] text-black uppercase leading-tight">{quotation.customerName}</p>
           </div>
-          <div className="bg-gray-50 border border-gray-100 p-2.5 rounded-xl flex flex-wrap items-center justify-start text-[8pt] font-bold text-gray-600 gap-x-8 gap-y-1">
-            <div className="flex items-center gap-2">
-              <span className="text-black font-black uppercase text-[6.5pt] tracking-widest opacity-40">Consumer No:</span>
-              <span className="text-black uppercase">{quotation.discomNumber || 'N/A'}</span>
+          {/* Customer info block split into two rows: row 1 (Consumer No, Mobile) and row 2 (Address) */}
+          <div className="bg-gray-50 border border-gray-100 p-3 rounded-xl flex flex-col text-[8pt] font-bold text-gray-600 gap-2 shadow-sm">
+            <div className="flex flex-wrap items-center justify-start gap-x-8 gap-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-black font-black uppercase text-[6.5pt] tracking-widest opacity-40">Consumer No:</span>
+                <span className="text-black uppercase">{quotation.discomNumber || 'N/A'}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-black font-black uppercase text-[6.5pt] tracking-widest opacity-40">MOBILE:</span>
+                <span className="text-black">{quotation.mobile}</span>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-black font-black uppercase text-[6.5pt] tracking-widest opacity-40">MOBILE:</span>
-              <span className="text-black">{quotation.mobile}</span>
-            </div>
-            <div className="flex items-center gap-2 flex-1 min-w-[300px]">
-              <span className="text-black font-black uppercase text-[6.5pt] tracking-widest opacity-40">ADDRESS:</span>
-              <span className="text-black uppercase truncate">{quotation.address}</span>
+            <div className="flex items-start gap-2 border-t border-gray-200/50 pt-1.5">
+              <span className="text-black font-black uppercase text-[6.5pt] tracking-widest opacity-40 pt-0.5">ADDRESS:</span>
+              <span className="text-black uppercase leading-snug text-[8.5pt]">{quotation.address}</span>
             </div>
           </div>
         </div>
@@ -171,7 +177,7 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
           <p className="text-[10pt] font-black text-red-700 uppercase leading-snug">{quotation.systemDescription}</p>
           {isWithoutStructure && (
             <p className="text-[7.5pt] font-black text-gray-600 uppercase mt-1 tracking-tighter">
-              * Structure cost is additionally chargeable
+              {hasCustomizedStructureCost ? 'Customized Structure Cost Included without GST' : '* Structure cost is additionally chargeable'}
             </p>
           )}
         </div>
@@ -181,7 +187,8 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
         </div>
 
         <div className="mb-4 w-full">
-          <div className="rounded-xl overflow-hidden border border-gray-100 shadow-sm">
+          {/* Main Pricing Table Section */}
+          <div className="rounded-xl overflow-hidden border border-gray-100 shadow-sm mb-4">
             <table className="table-modern">
               <thead>
                 <tr>
@@ -203,45 +210,24 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
                 </tr>
                 <tr className="bg-gray-50 border-t border-b">
                   <td className="text-center text-gray-400 font-black">-</td>
-                  <td className="py-2 uppercase font-black text-gray-900 tracking-widest">PLANT COST AFTER DISCOUNT</td>
+                  <td className="py-2 uppercase font-black text-gray-900 tracking-widest">Cost of {quotation.systemDescription} AFTER DISCOUNT</td>
                   <td className="text-right font-black pr-10 text-black text-[11pt]">₹ {afterDiscount.toLocaleString('en-IN')}</td>
                 </tr>
                 <tr>
                   <td className="text-center text-red-200 font-black">03</td>
-                  <td className="py-2 uppercase tracking-tight text-red-700 leading-snug">Subsidy Amount as Per PM Surya Ghar Approved Guidelines Directly Credit to Customer Bank Account</td>
+                  <td className="py-2 uppercase tracking-tight text-red-700 leading-snug">Subsidy Amount as Per PM Surya Ghar Approved Guidelines</td>
                   <td className="text-right font-black pr-10 text-red-600 text-[11pt]">(-) ₹ {quotation.pricing.subsidyAmount.toLocaleString('en-IN')}</td>
                 </tr>
-                <tr className="bg-red-50/40">
-                  <td className="text-center text-red-400 font-black">-</td>
-                  <td className="py-2 uppercase font-black text-red-700 tracking-widest">Customer Effective Cost After Subsidy Include GST As Per the Current Slab</td>
-                  <td className="text-right font-black pr-10 text-red-700 text-[11pt]">₹ {afterSubsidy.toLocaleString('en-IN')}</td>
+                <tr className="bg-red-50">
+                  <td className="text-center text-red-600 font-black">-</td>
+                  <td className="py-2 uppercase font-black text-red-600 tracking-widest">Customer Effective Cost After Subsidy</td>
+                  <td className="text-right font-black pr-10 text-red-600 text-[14pt]">₹ {afterSubsidy.toLocaleString('en-IN')}</td>
                 </tr>
               </tbody>
             </table>
-            
-            <div className="pricing-summary-row h-auto py-4">
-              <div className="flex-1 pr-2 overflow-visible">
-                <p className="text-[9pt] font-[900] uppercase tracking-tighter leading-none whitespace-nowrap">CUSTOMER EFFECTIVE COST AFTER SUBSIDY AS PER THE CURRENT SLAB</p>
-                <div className="text-[6pt] text-gray-300 font-bold uppercase tracking-[0.05em] mt-2 opacity-90 leading-relaxed">
-                  INCLUSIVE OF GST, TRANSPORTATION & STANDARD INSTALLATION
-                  {isWithoutStructure && (
-                    <>
-                      <br />
-                      <span className="text-red-500 font-black">Customized Structure cost additionally chargeable as per site condition</span>
-                    </>
-                  )}
-                  <br />
-                  CONSUMER NEED TO PAY TOTAL PLANT COST, MNRE SUBSIDY WILL DIRECTLY REACH THE CUSTOMER'S ACCOUNT WITHIN 1-3 MONTH
-                </div>
-              </div>
-              <div className="text-right min-w-fit">
-                <span className="text-[22pt] font-black text-white leading-none">₹ {grandTotal.toLocaleString('en-IN')}</span>
-              </div>
-            </div>
           </div>
-        </div>
 
-        <div className="mb-4 w-full">
+          {/* Additional Charges Table Section moved above summary bar */}
           <div className="rounded-xl overflow-hidden border border-gray-100 shadow-sm bg-gray-50/30">
             <table className="table-modern">
               <thead>
@@ -259,7 +245,7 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
                 </tr>
                 <tr>
                   <td className="text-center text-gray-300 !py-1">05</td>
-                  <td className="!py-1 uppercase text-gray-600">Customized Structure Cost</td>
+                  <td className="!py-1 uppercase text-gray-600">Customized Structure Cost(Without GST)</td>
                   <td className="text-right font-black pr-10 text-gray-900 !py-1 text-[10pt]">₹ {quotation.pricing.customizedStructureCost.toLocaleString('en-IN')}</td>
                 </tr>
                 <tr>
@@ -269,6 +255,29 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
                 </tr>
               </tbody>
             </table>
+
+            {/* Final Total Summary Bar at the bottom of the second container */}
+            <div className="pricing-summary-row h-auto py-4">
+              <div className="flex-1 pr-4 overflow-visible">
+                <p className="text-[7pt] font-[900] uppercase tracking-tighter leading-tight whitespace-nowrap">CUSTOMER EFFECTIVE COST AFTER SUBSIDY - INCLUDING KSEB CHARGES AS PER THE CURRENT SLAB</p>
+                <div className="text-[6pt] text-gray-300 font-bold uppercase tracking-[0.05em] mt-2 opacity-90 leading-relaxed">
+                  INCLUSIVE OF GST, TRANSPORTATION & STANDARD INSTALLATION
+                  {isWithoutStructure && (
+                    <>
+                      <br />
+                      <span className="text-red-500 font-black">
+                        {hasCustomizedStructureCost ? 'Customized Structure Cost Included without GST' : 'Customized Structure cost additionally chargeable as per site condition'}
+                      </span>
+                    </>
+                  )}
+                  <br />
+                  CONSUMER NEED TO PAY TOTAL PLANT COST, MNRE SUBSIDY WILL DIRECTLY REACH THE CUSTOMER'S ACCOUNT WITHIN 1-3 MONTH
+                </div>
+              </div>
+              <div className="text-right min-w-fit flex flex-col justify-center">
+                <span className="text-[26pt] font-black text-white leading-none">₹ {grandTotal.toLocaleString('en-IN')}</span>
+              </div>
+            </div>
           </div>
         </div>
 
