@@ -281,13 +281,12 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
           </div>
         </div>
 
-        <div className="mt-auto w-full flex justify-between items-end px-10 mb-2">
+        <div className="mt-auto w-full flex justify-center items-end px-10 mb-2">
           <div className="pb-4">
             <p className="text-[7pt] font-black text-red-600 uppercase tracking-[0.2em] border border-red-100 px-3 py-1.5 rounded-lg bg-red-50/30">
               Check TERMS AND CONDITIONS PAGE 3
             </p>
           </div>
-          <CompanySealBlock imageBottomClass="-bottom-2" />
         </div>
         <PageFooter pageNum={1} noMarginTop />
       </div>
