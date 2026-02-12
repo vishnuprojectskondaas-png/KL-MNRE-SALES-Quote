@@ -1,0 +1,162 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Solar Quote Pro</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+    /* Global Reset */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --primary-red: #E31E24;
+      --primary-black: #111111;
+      --bg-light: #F9FAFB;
+      --border-color: #E5E7EB;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      background-color: var(--bg-light);
+    }
+
+    .no-print {
+      display: flex;
+    }
+
+    /* PDF Structural Logic */
+    .pdf-container {
+      background: white !important;
+      display: block !important;
+      width: 210mm !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      overflow: visible !important;
+    }
+
+    .a4-page {
+      width: 210mm;
+      height: 296.5mm; 
+      background: white;
+      margin: 0;
+      padding: 10mm 12mm 5mm 12mm; /* Decreased bottom margin to 5mm */
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: visible;
+      page-break-after: always;
+      color: #111;
+      box-sizing: border-box;
+    }
+
+    .a4-page:last-child {
+      page-break-after: avoid !important;
+    }
+
+    @media print {
+      body { background: white !important; }
+      .no-print { display: none !important; }
+      .a4-page { margin: 0; box-shadow: none; padding: 10mm 12mm 5mm 12mm; }
+      @page { size: A4; margin: 0; }
+    }
+
+    .table-modern {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    .table-modern th {
+      background: var(--primary-black);
+      color: white;
+      text-align: left;
+      padding: 10pt 14pt;
+      font-size: 8.5pt;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .table-modern td {
+      padding: 9pt 14pt;
+      border-bottom: 1px solid #f3f4f6;
+      font-size: 9pt;
+      color: #333;
+      line-height: 1.5;
+      word-wrap: break-word;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 15pt;
+      margin-bottom: 20pt;
+      width: 100%;
+    }
+
+    .section-header .line {
+      flex: 1;
+      height: 1.5pt;
+      background: #f3f4f6;
+    }
+
+    .section-header h3 {
+      font-size: 9.5pt;
+      font-weight: 900;
+      color: var(--primary-red);
+      text-transform: uppercase;
+      letter-spacing: 2.5pt;
+      white-space: nowrap;
+    }
+
+    .pricing-summary-row {
+      background: #000;
+      color: #fff;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8pt 25pt;
+      border-radius: 6pt;
+      width: 100%;
+      margin-top: 10pt;
+    }
+
+    .modern-card {
+      border: 1.5pt solid #f1f3f5;
+      border-radius: 10pt;
+      padding: 18pt;
+      background: #fafafa;
+      width: 100%;
+    }
+  </style>
+<script type="importmap">
+{
+  "imports": {
+    "lucide-react": "https://esm.sh/lucide-react@^0.563.0",
+    "xlsx": "https://esm.sh/xlsx@^0.18.5",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "react": "https://esm.sh/react@^19.2.4",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.4",
+    "vite": "https://esm.sh/vite@^7.3.1",
+    "date-fns": "https://esm.sh/date-fns@^4.1.0",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.95.3"
+  }
+}
+</script>
+</head>
+<body class="bg-gray-50 text-gray-900">
+  <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>
