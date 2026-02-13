@@ -178,8 +178,15 @@ const App: React.FC = () => {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
         <div className="bg-white rounded-xl shadow-2xl p-8 w-full max-w-md">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">Solar Quote Pro</h1>
+          <div className="text-center mb-8 flex flex-col items-center">
+            {state.company.logo ? (
+              <img src={state.company.logo} alt="Company Logo" className="h-20 w-auto mb-6 object-contain" />
+            ) : (
+              <div className="w-16 h-16 bg-red-600 rounded-2xl flex items-center justify-center text-white mb-6 shadow-lg">
+                <FileText className="w-10 h-10" />
+              </div>
+            )}
+            <h1 className="text-3xl font-bold text-gray-900">Kondaas QuotePro</h1>
             <p className="text-gray-500 mt-2">Login to your account</p>
           </div>
           <form onSubmit={handleLogin} className="space-y-6">
@@ -189,7 +196,7 @@ const App: React.FC = () => {
                 type="text" 
                 value={loginUsername}
                 onChange={(e) => setLoginUsername(e.target.value)}
-                className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-red-500 focus:border-red-500" 
+                className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-red-500 focus:border-red-500 outline-none" 
                 placeholder="Username"
                 required
               />
@@ -200,20 +207,21 @@ const App: React.FC = () => {
                 type="password" 
                 value={loginPassword}
                 onChange={(e) => setLoginPassword(e.target.value)}
-                className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-red-500 focus:border-red-500" 
+                className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-red-500 focus:border-red-500 outline-none" 
                 placeholder="Password"
                 required
               />
             </div>
             <button 
               type="submit"
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
             >
               <LogIn className="w-5 h-5 mr-2" /> Login
             </button>
           </form>
-          <div className="mt-4 text-center">
-             <p className="text-xs text-gray-400">Developed by Vishnu</p>
+          <div className="mt-8 text-center">
+             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Powered by {state.company.name}</p>
+             <p className="text-[8px] text-gray-300 mt-1">Developed by Vishnu</p>
           </div>
         </div>
       </div>
