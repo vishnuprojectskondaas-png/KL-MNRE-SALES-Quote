@@ -343,6 +343,7 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
   const fileInputRef = useRef<HTMLInputElement>(null);
   const productFileInputRef = useRef<HTMLInputElement>(null);
   const termsFileInputRef = useRef<HTMLInputElement>(null);
+  const bomFileInputRef = useRef<HTMLInputElement>(null);
 
   const updateSub = async (key: keyof AppState, data: any) => {
     setSaveStatus('saving');
@@ -595,6 +596,59 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
     reader.readAsBinaryString(file);
   };
 
+  const handleBulkImportBOM = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const bstr = evt.target?.result;
+        const wb = XLSX.read(bstr, { type: 'binary' });
+        const wsname = wb.SheetNames[0];
+        const ws = wb.Sheets[wsname];
+        const data = XLSX.utils.sheet_to_json(ws);
+
+        if (data.length === 0) {
+          alert("Excel sheet is empty");
+          return;
+        }
+
+        // Group rows by Template Name
+        const templatesMap: Record<string, BOMItem[]> = {};
+        data.forEach((row: any) => {
+          const templateName = row['Template Name'] || 'Imported BOM Template';
+          if (!templatesMap[templateName]) {
+            templatesMap[templateName] = [];
+          }
+          templatesMap[templateName].push({
+            id: Math.random().toString(36).substr(2, 9),
+            product: row['Product Component'] || '',
+            uom: row['UOM'] || '',
+            quantity: row['Qty']?.toString() || '',
+            specification: row['Specification'] || '',
+            make: row['Make / Brand'] || ''
+          });
+        });
+
+        const newTemplates: BOMTemplate[] = Object.entries(templatesMap).map(([name, items]) => ({
+          id: Math.random().toString(36).substr(2, 9),
+          name: name,
+          items: items
+        }));
+
+        if (confirm(`Import ${newTemplates.length} BOM templates with total ${data.length} components? This will append to existing list.`)) {
+          updateSub('bomTemplates', [...(state.bomTemplates || []), ...newTemplates]);
+        }
+      } catch (error) {
+        console.error("Bulk BOM import failed:", error);
+        alert("Failed to import BOM data. Please check Excel format.");
+      }
+      if (bomFileInputRef.current) bomFileInputRef.current.value = '';
+    };
+    reader.readAsBinaryString(file);
+  };
+
   const downloadSampleExcel = () => {
     const sampleData = [
       {
@@ -648,6 +702,32 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Terms_Template");
     XLSX.writeFile(wb, "Solar_Terms_Import_Sample.xlsx");
+  };
+
+  const downloadSampleBOMExcel = () => {
+    const sampleData = [
+      {
+        'Template Name': '3kW Sample BOM',
+        'Product Component': 'Solar Panels',
+        'UOM': 'Nos',
+        'Qty': '8',
+        'Specification': '550Wp Mono PERC',
+        'Make / Brand': 'Adani'
+      },
+      {
+        'Template Name': '3kW Sample BOM',
+        'Product Component': 'On-Grid Inverter',
+        'UOM': 'No',
+        'Qty': '1',
+        'Specification': '3kW String Inverter',
+        'Make / Brand': 'Growatt'
+      }
+    ];
+
+    const ws = XLSX.utils.json_to_sheet(sampleData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "BOM_Template");
+    XLSX.writeFile(wb, "Solar_BOM_Import_Sample.xlsx");
   };
 
   const handleAddProduct = () => {
@@ -1125,7 +1205,27 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
 
         {activeSubTab === 'bom' && (
           <div className="space-y-6">
-            <div className="flex justify-between items-center"><h3 className="text-lg font-bold">Bill of Materials Templates</h3><button onClick={handleCreateTemplate} className="bg-red-600 text-white px-4 py-2 rounded text-sm font-bold flex items-center shadow-md active:scale-95 transition-all"><Plus className="w-4 h-4 mr-2" /> New BOM Template</button></div>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <h3 className="text-lg font-bold">Bill of Materials Templates</h3>
+              <div className="flex flex-wrap gap-2 w-full md:w-auto">
+                <button 
+                  onClick={downloadSampleBOMExcel} 
+                  className="flex-1 md:flex-none border border-gray-300 bg-white text-gray-700 px-4 py-2 rounded text-xs font-black uppercase flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors shadow-sm"
+                >
+                  <DownloadCloud className="w-4 h-4" /> Sample Excel
+                </button>
+                <label className="flex-1 md:flex-none bg-blue-600 text-white px-4 py-2 rounded text-xs font-black uppercase flex items-center justify-center gap-2 cursor-pointer hover:bg-blue-700 transition-colors shadow-md shadow-blue-100">
+                  <Upload className="w-4 h-4" /> Bulk Import
+                  <input ref={bomFileInputRef} type="file" accept=".xlsx, .xls" className="hidden" onChange={handleBulkImportBOM} />
+                </label>
+                <button 
+                  onClick={handleCreateTemplate} 
+                  className="flex-1 md:flex-none bg-black text-white px-4 py-2 rounded text-xs font-black uppercase flex items-center justify-center gap-2 shadow-md active:scale-95 transition-all"
+                >
+                  <Plus className="w-4 h-4" /> New BOM Template
+                </button>
+              </div>
+            </div>
             <div className="space-y-4">
               {templatesList.map(template => (
                 <div key={template.id} className="border rounded-lg bg-gray-50 overflow-hidden shadow-sm border-gray-100">
