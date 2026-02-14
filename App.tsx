@@ -994,8 +994,8 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
               {filteredPricing.map(p => (
                 <div key={p.id} className="border rounded-lg bg-gray-50 overflow-hidden shadow-sm">
                   <div className="p-4 bg-white flex justify-between items-center border-b">
-                    <div>
-                      <input className="font-black text-gray-900 border-b border-transparent focus:border-red-600 outline-none uppercase text-sm tracking-tight" value={p.name || ''} onChange={e => updatePricingItem(p.id, { name: e.target.value })} />
+                    <div className="flex-1 min-w-0 pr-4">
+                      <input className="font-black text-gray-900 border-b border-transparent focus:border-red-600 outline-none uppercase text-[11px] tracking-tight w-full truncate" value={p.name || ''} onChange={e => updatePricingItem(p.id, { name: e.target.value })} />
                       <div className="flex gap-2 mt-1.5">
                         <span className="text-[9px] font-black uppercase bg-gray-100 text-gray-500 px-2 py-0.5 rounded border">{p.projectType}</span>
                         <span className="text-[9px] font-black uppercase bg-gray-100 text-gray-500 px-2 py-0.5 rounded border">{p.structureType}</span>
