@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { fetchFullState, saveSettingsToLocal, saveQuotationToLocal, deleteQuotationFromLocal, INITIAL_STATE } from './store';
 import { AppState, Quotation, BOMTemplate, BOMItem, ProductPricing, ProductDescription, User, UserRole, PROJECT_TYPES, STRUCTURE_TYPES, PANEL_TYPES, ProjectType, StructureType, PanelType, WarrantyPackage, Term } from './types';
@@ -339,6 +338,7 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
   const [activeSubTab, setActiveSubTab] = useState<'company' | 'users' | 'pricing' | 'terms' | 'bank' | 'warranty' | 'bom' | 'products'>('company');
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [expandedTemplateId, setExpandedTemplateId] = useState<string | null>(null);
+  const [expandedProductId, setExpandedProductId] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
 
   const [filterProjectType, setFilterProjectType] = useState<string>('All');
@@ -751,6 +751,7 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
       defaultBomTemplateId: ''
     };
     updateSub('productDescriptions', [...currentProducts, newProduct]);
+    setExpandedProductId(newId);
   };
 
   const updateProductDesc = (id: string, updates: Partial<ProductDescription>) => {
@@ -1048,29 +1049,54 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
             </div>
             <div className="space-y-4">
               {filteredProducts.map((desc) => (
-                <div key={desc.id} className="p-6 border rounded-xl bg-gray-50 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 shadow-sm border-gray-100 hover:border-red-100 transition-colors">
-                  <div className="md:col-span-2">
-                    <label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Full Product Description Heading (A4 PDF Title)</label>
-                    <input className="w-full bg-white border p-3 rounded-lg text-sm font-black text-gray-900 uppercase tracking-tight focus:ring-2 focus:ring-red-500 outline-none" value={desc.name || ''} onChange={e => updateProductDesc(desc.id, { name: e.target.value })} />
+                <div key={desc.id} className="border rounded-xl overflow-hidden shadow-sm border-gray-100 bg-white transition-all hover:border-red-100">
+                  {/* Collapsible Header */}
+                  <div 
+                    onClick={() => setExpandedProductId(expandedProductId === desc.id ? null : desc.id)}
+                    className="p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-colors border-b border-transparent"
+                  >
+                    <div className="flex flex-col flex-1 min-w-0 pr-4">
+                      <div className="flex items-center gap-3">
+                        {expandedProductId === desc.id ? <ChevronUp className="w-5 h-5 text-red-600 flex-shrink-0" /> : <ChevronDown className="w-5 h-5 text-gray-400 flex-shrink-0" />}
+                        <h4 className="font-black text-gray-900 uppercase truncate text-sm tracking-tight">{desc.name || 'Untitled Specification'}</h4>
+                      </div>
+                      <div className="flex gap-2 mt-1.5 ml-8">
+                        <span className="text-[9px] font-black uppercase bg-gray-100 text-gray-500 px-2 py-0.5 rounded border">{desc.projectType}</span>
+                        <span className="text-[9px] font-black uppercase bg-red-50 text-red-500 px-2 py-0.5 rounded border border-red-100">{desc.panelType}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                       <button onClick={(e) => { e.stopPropagation(); updateSub('productDescriptions', productsList.filter(i => i.id !== desc.id)); }} className="text-red-300 hover:text-red-500 p-2"><Trash2 className="w-4 h-4"/></button>
+                    </div>
                   </div>
-                  <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Category Classification</label><select className="w-full border p-2.5 rounded-lg bg-white text-xs font-bold" value={desc.projectType || 'Ongrid Subsidy'} onChange={e => updateProductDesc(desc.id, { projectType: e.target.value as ProjectType })}>{PROJECT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
-                  <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Structural Classification</label><select className="w-full border p-2.5 rounded-lg bg-white text-xs font-bold" value={desc.structureType || '2 Meter Flat roof structure'} onChange={e => updateProductDesc(desc.id, { structureType: e.target.value as StructureType })}>{STRUCTURE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
-                  <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Panel Type Classification</label><select className="w-full border p-2.5 rounded-lg bg-white text-xs font-bold" value={desc.panelType || 'TOPCON G2R'} onChange={e => updateProductDesc(desc.id, { panelType: e.target.value as PanelType })}>{PANEL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
-                  <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Link Pricing Model (Auto-Fill)</label>
-                    <select className="w-full border p-2.5 rounded-lg bg-white text-xs font-bold text-blue-600" value={desc.defaultPricingId || ''} onChange={e => updateProductDesc(desc.id, { defaultPricingId: e.target.value })}>
-                      <option value="">-- No Auto-Link --</option>
-                      {pricingList.filter(pr => pr.projectType === desc.projectType && pr.structureType === desc.structureType && pr.panelType === desc.panelType).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                    </select>
-                  </div>
-                  <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Link BOM Template (Auto-Fill)</label>
-                    <select className="w-full border p-2.5 rounded-lg bg-white text-xs font-bold text-red-600" value={desc.defaultBomTemplateId || ''} onChange={e => updateProductDesc(desc.id, { defaultBomTemplateId: e.target.value })}>
-                      <option value="">-- No Auto-Link --</option>
-                      {templatesList.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                    </select>
-                  </div>
-                  <div className="md:col-span-2 flex justify-end pt-2">
-                    <button onClick={() => updateSub('productDescriptions', productsList.filter(i => i.id !== desc.id))} className="text-red-500 text-[10px] font-black uppercase flex items-center gap-1 hover:bg-red-50 px-3 py-1.5 rounded-full transition-colors"><Trash2 className="w-3.5 h-3.5"/> Delete Product Definition</button>
-                  </div>
+
+                  {/* Collapsible Content */}
+                  {expandedProductId === desc.id && (
+                    <div className="p-6 bg-gray-50 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 animate-in fade-in slide-in-from-top-1 duration-200">
+                      <div className="md:col-span-2">
+                        <label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Full Product Description Heading (A4 PDF Title)</label>
+                        <input className="w-full bg-white border p-3 rounded-lg text-sm font-black text-gray-900 uppercase tracking-tight focus:ring-2 focus:ring-red-500 outline-none" value={desc.name || ''} onChange={e => updateProductDesc(desc.id, { name: e.target.value })} />
+                      </div>
+                      <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Category Classification</label><select className="w-full border p-2.5 rounded-lg bg-white text-xs font-bold" value={desc.projectType || 'Ongrid Subsidy'} onChange={e => updateProductDesc(desc.id, { projectType: e.target.value as ProjectType })}>{PROJECT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+                      <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Structural Classification</label><select className="w-full border p-2.5 rounded-lg bg-white text-xs font-bold" value={desc.structureType || '2 Meter Flat roof structure'} onChange={e => updateProductDesc(desc.id, { structureType: e.target.value as StructureType })}>{STRUCTURE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+                      <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Panel Type Classification</label><select className="w-full border p-2.5 rounded-lg bg-white text-xs font-bold" value={desc.panelType || 'TOPCON G2R'} onChange={e => updateProductDesc(desc.id, { panelType: e.target.value as PanelType })}>{PANEL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+                      <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Link Pricing Model (Auto-Fill)</label>
+                        <select className="w-full border p-2.5 rounded-lg bg-white text-xs font-bold text-blue-600" value={desc.defaultPricingId || ''} onChange={e => updateProductDesc(desc.id, { defaultPricingId: e.target.value })}>
+                          <option value="">-- No Auto-Link --</option>
+                          {pricingList.filter(pr => pr.projectType === desc.projectType && pr.structureType === desc.structureType && pr.panelType === desc.panelType).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                        </select>
+                      </div>
+                      <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Link BOM Template (Auto-Fill)</label>
+                        <select className="w-full border p-2.5 rounded-lg bg-white text-xs font-bold text-red-600" value={desc.defaultBomTemplateId || ''} onChange={e => updateProductDesc(desc.id, { defaultBomTemplateId: e.target.value })}>
+                          <option value="">-- No Auto-Link --</option>
+                          {templatesList.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                        </select>
+                      </div>
+                      <div className="md:col-span-2 flex justify-end pt-2">
+                        <button onClick={() => setExpandedProductId(null)} className="text-gray-500 text-[10px] font-black uppercase flex items-center gap-1 hover:bg-gray-200 px-3 py-1.5 rounded-full transition-colors border border-gray-200">Collapse Panel</button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
               {filteredProducts.length === 0 && <p className="text-center py-10 text-gray-400 text-xs font-bold uppercase tracking-widest border-2 border-dashed rounded-lg bg-gray-50/50">No product definitions matched the current categorization. Reset filters to view all.</p>}
@@ -1241,7 +1267,12 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
                     <button onClick={() => setExpandedTemplateId(expandedTemplateId === template.id ? null : template.id)} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">{expandedTemplateId === template.id ? <ChevronUp className="w-5 h-5 text-gray-400"/> : <ChevronDown className="w-5 h-5 text-gray-400"/>}</button>
                     <input className="font-bold flex-1 border-b border-transparent focus:border-red-600 outline-none text-gray-900" value={template.name || ''} onChange={e => handleUpdateTemplate(template.id, { name: e.target.value })} />
                     <div className="flex items-center gap-2">
-                      <button onClick={() => { const newId = Date.now().toString(); updateSub('bomTemplates', [...templatesList, { ...template, id: newId, name: `${template.name} (Copy)` }]); }} className="text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg"><Copy className="w-4 h-4"/></button>
+                      <button onClick={() => { 
+                        const newId = Date.now().toString(); 
+                        // Deep clone items array and items themselves to avoid shared references
+                        const newItems = (template.items || []).map(item => ({ ...item, id: Math.random().toString(36).substr(2, 9) }));
+                        updateSub('bomTemplates', [...templatesList, { ...template, id: newId, name: `${template.name} (Copy)`, items: newItems }]); 
+                      }} className="text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg" title="Duplicate Template"><Copy className="w-4 h-4"/></button>
                       <button onClick={() => updateSub('bomTemplates', templatesList.filter(t => t.id !== template.id))} className="text-red-400 hover:text-red-600 p-1.5 rounded-lg"><Trash2 className="w-4 h-4"/></button>
                     </div>
                   </div>
@@ -1252,11 +1283,11 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
                         <tbody className="divide-y divide-gray-100">
                           {(template.items || []).map((item, idx) => (
                             <tr key={item.id} className="hover:bg-white transition-colors">
-                              <td className="py-1.5 px-1"><input className="border rounded px-2 py-1.5 w-full bg-white text-gray-800 font-medium" value={item.product || ''} onChange={e => { const items = [...template.items]; items[idx].product = e.target.value; handleUpdateTemplate(template.id, { items }); }} /></td>
-                              <td className="py-1.5 px-1"><input className="border rounded px-2 py-1.5 w-20 bg-white" value={item.uom || ''} onChange={e => { const items = [...template.items]; items[idx].uom = e.target.value; handleUpdateTemplate(template.id, { items }); }} /></td>
-                              <td className="py-1.5 px-1"><input className="border rounded px-2 py-1.5 w-16 bg-white font-bold" value={item.quantity || ''} onChange={e => { const items = [...template.items]; items[idx].quantity = e.target.value; handleUpdateTemplate(template.id, { items }); }} /></td>
-                              <td className="py-1.5 px-1"><input className="border rounded px-2 py-1.5 w-full bg-white" value={item.specification || ''} onChange={e => { const items = [...template.items]; items[idx].specification = e.target.value; handleUpdateTemplate(template.id, { items }); }} /></td>
-                              <td className="py-1.5 px-1"><input className="border rounded px-2 py-1.5 w-full bg-white font-bold uppercase text-[10px]" value={item.make || ''} onChange={e => { const items = [...template.items]; items[idx].make = e.target.value; handleUpdateTemplate(template.id, { items }); }} /></td>
+                              <td className="py-1.5 px-1"><input className="border rounded px-2 py-1.5 w-full bg-white text-gray-800 font-medium" value={item.product || ''} onChange={e => { const items = [...template.items]; items[idx] = { ...items[idx], product: e.target.value }; handleUpdateTemplate(template.id, { items }); }} /></td>
+                              <td className="py-1.5 px-1"><input className="border rounded px-2 py-1.5 w-20 bg-white" value={item.uom || ''} onChange={e => { const items = [...template.items]; items[idx] = { ...items[idx], uom: e.target.value }; handleUpdateTemplate(template.id, { items }); }} /></td>
+                              <td className="py-1.5 px-1"><input className="border rounded px-2 py-1.5 w-16 bg-white font-bold" value={item.quantity || ''} onChange={e => { const items = [...template.items]; items[idx] = { ...items[idx], quantity: e.target.value }; handleUpdateTemplate(template.id, { items }); }} /></td>
+                              <td className="py-1.5 px-1"><input className="border rounded px-2 py-1.5 w-full bg-white" value={item.specification || ''} onChange={e => { const items = [...template.items]; items[idx] = { ...items[idx], specification: e.target.value }; handleUpdateTemplate(template.id, { items }); }} /></td>
+                              <td className="py-1.5 px-1"><input className="border rounded px-2 py-1.5 w-full bg-white font-bold uppercase text-[10px]" value={item.make || ''} onChange={e => { const items = [...template.items]; items[idx] = { ...items[idx], make: e.target.value }; handleUpdateTemplate(template.id, { items }); }} /></td>
                               <td className="py-1.5 px-1 text-right"><button onClick={() => { const items = template.items.filter((_, i) => i !== idx); handleUpdateTemplate(template.id, { items }); }} className="text-red-300 hover:text-red-500"><Trash2 className="w-3.5 h-3.5"/></button></td>
                             </tr>
                           ))}
