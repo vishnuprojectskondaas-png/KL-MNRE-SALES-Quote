@@ -1058,7 +1058,7 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
                     <div className="flex flex-col flex-1 min-w-0 pr-4">
                       <div className="flex items-center gap-3">
                         {expandedProductId === desc.id ? <ChevronUp className="w-5 h-5 text-red-600 flex-shrink-0" /> : <ChevronDown className="w-5 h-5 text-gray-400 flex-shrink-0" />}
-                        <h4 className="font-black text-gray-900 uppercase truncate text-sm tracking-tight">{desc.name || 'Untitled Specification'}</h4>
+                        <h4 className="font-black text-gray-900 uppercase truncate text-[11px] tracking-tight">{desc.name || 'Untitled Specification'}</h4>
                       </div>
                       <div className="flex gap-2 mt-1.5 ml-8">
                         <span className="text-[9px] font-black uppercase bg-gray-100 text-gray-500 px-2 py-0.5 rounded border">{desc.projectType}</span>
@@ -1265,7 +1265,7 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
                 <div key={template.id} className="border rounded-lg bg-gray-50 overflow-hidden shadow-sm border-gray-100">
                   <div className="p-4 flex items-center gap-4 bg-white border-b">
                     <button onClick={() => setExpandedTemplateId(expandedTemplateId === template.id ? null : template.id)} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">{expandedTemplateId === template.id ? <ChevronUp className="w-5 h-5 text-gray-400"/> : <ChevronDown className="w-5 h-5 text-gray-400"/>}</button>
-                    <input className="font-bold flex-1 border-b border-transparent focus:border-red-600 outline-none text-gray-900" value={template.name || ''} onChange={e => handleUpdateTemplate(template.id, { name: e.target.value })} />
+                    <input className="font-bold text-[11px] uppercase tracking-wider flex-1 border-b border-transparent focus:border-red-600 outline-none text-gray-900" value={template.name || ''} onChange={e => handleUpdateTemplate(template.id, { name: e.target.value })} />
                     <div className="flex items-center gap-2">
                       <button onClick={() => { 
                         const newId = Date.now().toString(); 
