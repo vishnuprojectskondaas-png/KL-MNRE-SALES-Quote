@@ -358,6 +358,7 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
   const productFileInputRef = useRef<HTMLInputElement>(null);
   const termsFileInputRef = useRef<HTMLInputElement>(null);
   const bomFileInputRef = useRef<HTMLInputElement>(null);
+  const warrantyFileInputRef = useRef<HTMLInputElement>(null);
 
   const updateSub = async (key: keyof AppState, data: any) => {
     setSaveStatus('saving');
@@ -422,8 +423,8 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
       id: newId,
       name: 'New Pricing Package',
       projectType: filterProjectType !== 'All' ? filterProjectType as ProjectType : 'Ongrid Subsidy',
-      structureType: filterStructureType !== 'All' ? filterStructureType as StructureType : '2 Meter Flat roof structure',
-      panelType: filterPanelType !== 'All' ? filterPanelType as PanelType : 'TOPCON G2R',
+      structureType: filterStructureType !== 'All' ? filterStructureType as StructureType : '2 Meter Flat Roof Structure',
+      panelType: filterPanelType !== 'All' ? filterPanelType as PanelType : 'TOPCON G12R',
       actualPlantCost: 0,
       discount: 0,
       subsidyAmount: 0,
@@ -447,8 +448,8 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
     const newPackage: WarrantyPackage = {
       id: newId,
       projectType: filterProjectType !== 'All' ? filterProjectType as ProjectType : 'Ongrid Subsidy',
-      structureType: filterStructureType !== 'All' ? filterStructureType as StructureType : '2 Meter Flat roof structure',
-      panelType: filterPanelType !== 'All' ? filterPanelType as PanelType : 'TOPCON G2R',
+      structureType: filterStructureType !== 'All' ? filterStructureType as StructureType : '2 Meter Flat Roof Structure',
+      panelType: filterPanelType !== 'All' ? filterPanelType as PanelType : 'TOPCON G12R',
       panelWarranty: '',
       inverterWarranty: '',
       batteryWarranty: '',
@@ -509,8 +510,8 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
           id: Math.random().toString(36).substr(2, 9),
           name: row['Package Name'] || 'Imported Package',
           projectType: (row['Project Type'] || 'Ongrid Subsidy') as ProjectType,
-          structureType: (row['Structure Type'] || '2 Meter Flat roof structure') as StructureType,
-          panelType: (row['Panel Type'] || 'TOPCON G2R') as PanelType,
+          structureType: (row['Structure Type'] || '2 Meter Flat Roof Structure') as StructureType,
+          panelType: (row['Panel Type'] || 'TOPCON G12R') as PanelType,
           actualPlantCost: Number(row['Actual Cost'] || 0),
           discount: Number(row['Discount'] || 0),
           subsidyAmount: Number(row['Subsidy Amount'] || 0),
@@ -554,8 +555,8 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
           id: Math.random().toString(36).substr(2, 9),
           name: row['Heading/Name'] || 'Imported Product',
           projectType: (row['Project Type'] || 'Ongrid Subsidy') as ProjectType,
-          structureType: (row['Structure Type'] || '2 Meter Flat roof structure') as StructureType,
-          panelType: (row['Panel Type'] || 'TOPCON G2R') as PanelType,
+          structureType: (row['Structure Type'] || '2 Meter Flat Roof Structure') as StructureType,
+          panelType: (row['Panel Type'] || 'TOPCON G12R') as PanelType,
           defaultPricingId: row['Pricing ID Link'] || '',
           defaultBomTemplateId: row['BOM Template ID Link'] || ''
         }));
@@ -596,8 +597,8 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
           enabled: row['Enabled']?.toString().toLowerCase() === 'false' ? false : true,
           order: state.terms.length + idx + 1,
           projectType: (row['Project Type'] || 'Ongrid Subsidy') as ProjectType,
-          structureType: (row['Structure Type'] || '2 Meter Flat roof structure') as StructureType,
-          panelType: (row['Panel Type'] || 'TOPCON G2R') as PanelType
+          structureType: (row['Structure Type'] || '2 Meter Flat Roof Structure') as StructureType,
+          panelType: (row['Panel Type'] || 'TOPCON G12R') as PanelType
         }));
 
         if (confirm(`Import ${newTerms.length} terms? This will append to existing list.`)) {
@@ -665,13 +666,55 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
     reader.readAsBinaryString(file);
   };
 
+  const handleBulkImportWarranties = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const bstr = evt.target?.result;
+        const wb = XLSX.read(bstr, { type: 'binary' });
+        const wsname = wb.SheetNames[0];
+        const ws = wb.Sheets[wsname];
+        const data = XLSX.utils.sheet_to_json(ws);
+
+        if (data.length === 0) {
+          alert("Excel sheet is empty");
+          return;
+        }
+
+        const newWarranties: WarrantyPackage[] = data.map((row: any) => ({
+          id: Math.random().toString(36).substr(2, 9),
+          projectType: (row['Project Type'] || 'Ongrid Subsidy') as ProjectType,
+          structureType: (row['Structure Type'] || '2 Meter Flat Roof Structure') as StructureType,
+          panelType: (row['Panel Type'] || 'TOPCON G12R') as PanelType,
+          panelWarranty: row['Panel Warranty'] || '',
+          inverterWarranty: row['Inverter Warranty'] || '',
+          batteryWarranty: row['Battery Warranty'] || '',
+          systemWarranty: row['System Warranty'] || '',
+          monitoringSystem: row['Monitoring System'] || ''
+        }));
+
+        if (confirm(`Import ${newWarranties.length} warranty declarations? This will append to existing list.`)) {
+          updateSub('warrantyPackages', [...(state.warrantyPackages || []), ...newWarranties]);
+        }
+      } catch (error) {
+        console.error("Bulk Warranty import failed:", error);
+        alert("Failed to import warranty data. Please check Excel format.");
+      }
+      if (warrantyFileInputRef.current) warrantyFileInputRef.current.value = '';
+    };
+    reader.readAsBinaryString(file);
+  };
+
   const downloadSampleExcel = () => {
     const sampleData = [
       {
         'Package Name': '3kW Sample Package',
         'Project Type': 'Ongrid Subsidy',
-        'Structure Type': '2 Meter Flat roof structure',
-        'Panel Type': 'TOPCON G2R',
+        'Structure Type': '2 Meter Flat Roof Structure',
+        'Panel Type': 'TOPCON G12R',
         'Actual Cost': 185000,
         'Discount': 5000,
         'Subsidy Amount': 78000,
@@ -691,8 +734,8 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
       {
         'Heading/Name': '3kW ON-GRID SOLAR POWER GENERATING SYSTEM',
         'Project Type': 'Ongrid Subsidy',
-        'Structure Type': '2 Meter Flat roof structure',
-        'Panel Type': 'TOPCON G2R',
+        'Structure Type': '2 Meter Flat Roof Structure',
+        'Panel Type': 'TOPCON G12R',
         'Pricing ID Link': '',
         'BOM Template ID Link': ''
       }
@@ -709,8 +752,8 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
       {
         'Term Text': 'The system will be installed within 15 days of advance payment.',
         'Project Type': 'Ongrid Subsidy',
-        'Structure Type': '2 Meter Flat roof structure',
-        'Panel Type': 'TOPCON G2R',
+        'Structure Type': '2 Meter Flat Roof Structure',
+        'Panel Type': 'TOPCON G12R',
         'Enabled': 'True'
       }
     ];
@@ -747,6 +790,26 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
     XLSX.writeFile(wb, "Solar_BOM_Import_Sample.xlsx");
   };
 
+  const downloadSampleWarrantyExcel = () => {
+    const sampleData = [
+      {
+        'Project Type': 'Ongrid Subsidy',
+        'Structure Type': '2 Meter Flat Roof Structure',
+        'Panel Type': 'TOPCON G12R',
+        'Panel Warranty': '25 Years Performance Warranty',
+        'Inverter Warranty': '10 Years Product Warranty',
+        'Battery Warranty': '',
+        'System Warranty': '5 Years Free Service',
+        'Monitoring System': 'Standard Online Monitoring'
+      }
+    ];
+
+    const ws = XLSX.utils.json_to_sheet(sampleData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Warranty_Template");
+    XLSX.writeFile(wb, "Solar_Warranty_Import_Sample.xlsx");
+  };
+
   const handleAddProduct = () => {
     const currentProducts = state.productDescriptions || [];
     const newId = Date.now().toString();
@@ -754,8 +817,8 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
       id: newId,
       name: 'New Product Specification',
       projectType: filterProjectType !== 'All' ? filterProjectType as ProjectType : 'Ongrid Subsidy',
-      structureType: filterStructureType !== 'All' ? filterStructureType as StructureType : '2 Meter Flat roof structure',
-      panelType: filterPanelType !== 'All' ? filterPanelType as PanelType : 'TOPCON G2R',
+      structureType: filterStructureType !== 'All' ? filterStructureType as StructureType : '2 Meter Flat Roof Structure',
+      panelType: filterPanelType !== 'All' ? filterPanelType as PanelType : 'TOPCON G12R',
       defaultPricingId: '',
       defaultBomTemplateId: ''
     };
@@ -965,7 +1028,6 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
                           <td className="px-6 py-4"><span className={`px-2 py-0.5 text-[9px] font-black uppercase rounded-full border ${u.role === 'admin' ? 'bg-red-50 text-red-600 border-red-100' : u.role === 'TL' ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-gray-50 text-gray-600 border-gray-100'}`}>{u.role}</span></td>
                           <td className="px-6 py-4 text-right space-x-3">
                              <button onClick={() => handleEditUser(u)} className="text-blue-600 hover:text-blue-800"><Edit className="w-4 h-4 inline"/></button>
-                             {/* Fixed "Cannot find name 'id'" error by specifying the correct user object property u.id */}
                              <button onClick={() => handleDeleteUser(u.id)} className="text-red-600 hover:text-red-800"><Trash2 className="w-4 h-4 inline"/></button>
                           </td>
                        </tr>
@@ -1025,7 +1087,7 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
                         <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Subsidy Amount (₹)</label><input type="number" value={p.subsidyAmount} onChange={e => updatePricingItem(p.id, { subsidyAmount: Number(e.target.value) })} className="w-full border p-2 rounded text-red-600 font-bold bg-white" /></div>
                       )}
                       <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">KSEB Charges (₹)</label><input type="number" value={p.ksebCharges} onChange={e => updatePricingItem(p.id, { ksebCharges: Number(e.target.value) })} className="w-full border p-2 rounded bg-white" /></div>
-                      <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Net Meter Cost (₹)</label><input type="number" value={p.netMeterCost || 0} onChange={e => updatePricingItem(p.id, { netMeterCost: Number(e.target.value) })} className="w-full border p-2 rounded bg-white" /></div>
+                      <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Net Meter Cost (₹)</label><input type="number" value={p.netMeterCost || 0} onChange={e => updatePricingItem(p.id, { netMeterCost: Number(e.target.value) })} className="w-full border p-3 rounded bg-white" /></div>
                     </div>
                   )}
                 </div>
@@ -1089,8 +1151,8 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
                         <input className="w-full bg-white border p-3 rounded-lg text-sm font-black text-gray-900 uppercase tracking-tight focus:ring-2 focus:ring-red-500 outline-none" value={desc.name || ''} onChange={e => updateProductDesc(desc.id, { name: e.target.value })} />
                       </div>
                       <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Category Classification</label><select className="w-full border p-2.5 rounded-lg bg-white text-xs font-bold" value={desc.projectType || 'Ongrid Subsidy'} onChange={e => updateProductDesc(desc.id, { projectType: e.target.value as ProjectType })}>{PROJECT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
-                      <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Structural Classification</label><select className="w-full border p-2.5 rounded-lg bg-white text-xs font-bold" value={desc.structureType || '2 Meter Flat roof structure'} onChange={e => updateProductDesc(desc.id, { structureType: e.target.value as StructureType })}>{STRUCTURE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
-                      <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Panel Type Classification</label><select className="w-full border p-2.5 rounded-lg bg-white text-xs font-bold" value={desc.panelType || 'TOPCON G2R'} onChange={e => updateProductDesc(desc.id, { panelType: e.target.value as PanelType })}>{PANEL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+                      <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Structural Classification</label><select className="w-full border p-2.5 rounded-lg bg-white text-xs font-bold" value={desc.structureType || '2 Meter Flat Roof Structure'} onChange={e => updateProductDesc(desc.id, { structureType: e.target.value as StructureType })}>{STRUCTURE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+                      <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Panel Type Classification</label><select className="w-full border p-2.5 rounded-lg bg-white text-xs font-bold" value={desc.panelType || 'TOPCON G12R'} onChange={e => updateProductDesc(desc.id, { panelType: e.target.value as PanelType })}>{PANEL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
                       <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Link Pricing Model (Auto-Fill)</label>
                         <select className="w-full border p-2.5 rounded-lg bg-white text-xs font-bold text-blue-600" value={desc.defaultPricingId || ''} onChange={e => updateProductDesc(desc.id, { defaultPricingId: e.target.value })}>
                           <option value="">-- No Auto-Link --</option>
@@ -1136,8 +1198,8 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
                   enabled: true, 
                   order: termsList.length + 1,
                   projectType: filterProjectType !== 'All' ? filterProjectType as ProjectType : 'Ongrid Subsidy',
-                  structureType: filterStructureType !== 'All' ? filterStructureType as StructureType : '2 Meter Flat roof structure',
-                  panelType: filterPanelType !== 'All' ? filterPanelType as PanelType : 'TOPCON G2R'
+                  structureType: filterStructureType !== 'All' ? filterStructureType as StructureType : '2 Meter Flat Roof Structure',
+                  panelType: filterPanelType !== 'All' ? filterPanelType as PanelType : 'TOPCON G12R'
                 }])} className="flex-1 md:flex-none bg-black text-white px-4 py-2 rounded text-sm font-bold shadow-md flex items-center justify-center gap-2 active:scale-95 transition-all">
                   <Plus className="w-4 h-4" /> Add Term Entry
                 </button>
@@ -1203,9 +1265,26 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
 
         {activeSubTab === 'warranty' && (
           <div className="space-y-6">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <h3 className="text-lg font-bold">Product & Service Warranty Declarations</h3>
-              <button onClick={handleAddWarranty} className="bg-black text-white px-4 py-2 rounded text-sm font-bold flex items-center shadow-md active:scale-95 transition-all"><ShieldCheck className="w-4 h-4 mr-2" /> Add Warranty Declarations</button>
+              <div className="flex flex-wrap gap-2 w-full md:w-auto">
+                <button 
+                  onClick={downloadSampleWarrantyExcel} 
+                  className="flex-1 md:flex-none border border-gray-300 bg-white text-gray-700 px-4 py-2 rounded text-xs font-black uppercase flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors shadow-sm"
+                >
+                  <DownloadCloud className="w-4 h-4" /> Sample Excel
+                </button>
+                <label className="flex-1 md:flex-none bg-blue-600 text-white px-4 py-2 rounded text-xs font-black uppercase flex items-center justify-center gap-2 cursor-pointer hover:bg-blue-700 transition-colors shadow-md shadow-blue-100">
+                  <Upload className="w-4 h-4" /> Bulk Import
+                  <input ref={warrantyFileInputRef} type="file" accept=".xlsx, .xls" className="hidden" onChange={handleBulkImportWarranties} />
+                </label>
+                <button 
+                  onClick={handleAddWarranty} 
+                  className="flex-1 md:flex-none bg-black text-white px-4 py-2 rounded text-xs font-black uppercase flex items-center justify-center gap-2 shadow-md active:scale-95 transition-all"
+                >
+                  <ShieldCheck className="w-4 h-4" /> Add Declaration
+                </button>
+              </div>
             </div>
             
             <div className="space-y-4">

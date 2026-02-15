@@ -28,9 +28,9 @@ const QuotationForm: React.FC<Props> = ({ state, currentUser, editData, onSave, 
     mobile: editData?.mobile || '',
     email: editData?.email || '',
     location: editData?.location || '',
-    projectType: editData?.projectType || 'Ongrid Subsidy',
-    structureType: editData?.structureType || '2 Meter Flat roof structure',
-    panelType: editData?.panelType || 'TOPCON G2R',
+    projectType: editData?.projectType || '',
+    structureType: editData?.structureType || '',
+    panelType: editData?.panelType || '',
     status: editData?.status || 'Site Survey Completed',
     pricing: editData?.pricing || { 
       actualPlantCost: 0,
@@ -106,6 +106,10 @@ const QuotationForm: React.FC<Props> = ({ state, currentUser, editData, onSave, 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.projectType || !formData.structureType || !formData.panelType) {
+        alert("Please select Project, Structure and Panel types");
+        return;
+    }
     if (!formData.systemDescription) {
         alert("Please select a Product Description");
         return;
@@ -113,7 +117,7 @@ const QuotationForm: React.FC<Props> = ({ state, currentUser, editData, onSave, 
     onSave(formData);
   };
 
-  const isNonSubsidy = formData.projectType.toLowerCase().includes('non subsidy');
+  const isNonSubsidy = formData.projectType ? formData.projectType.toLowerCase().includes('non subsidy') : false;
   
   const pActual = formData.pricing.actualPlantCost || 0;
   const pDiscount = formData.pricing.discount || 0;
@@ -155,6 +159,7 @@ const QuotationForm: React.FC<Props> = ({ state, currentUser, editData, onSave, 
                 onChange={e => handleCategoryChange({ projectType: e.target.value as ProjectType })}
                 className="w-full border-2 border-white shadow-sm p-2 rounded-lg bg-white font-bold text-gray-800 focus:border-red-500 outline-none"
               >
+                <option value="">-- Select Project Type --</option>
                 {PROJECT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
@@ -165,6 +170,7 @@ const QuotationForm: React.FC<Props> = ({ state, currentUser, editData, onSave, 
                 onChange={e => handleCategoryChange({ structureType: e.target.value as StructureType })}
                 className="w-full border-2 border-white shadow-sm p-2 rounded-lg bg-white font-bold text-gray-800 focus:border-red-500 outline-none"
               >
+                <option value="">-- Select Structure --</option>
                 {STRUCTURE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
@@ -175,6 +181,7 @@ const QuotationForm: React.FC<Props> = ({ state, currentUser, editData, onSave, 
                 onChange={e => handleCategoryChange({ panelType: e.target.value as PanelType })}
                 className="w-full border-2 border-white shadow-sm p-2 rounded-lg bg-white font-bold text-gray-800 focus:border-red-500 outline-none"
               >
+                <option value="">-- Select Panel Type --</option>
                 {PANEL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>

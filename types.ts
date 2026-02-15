@@ -8,9 +8,9 @@ export type ProjectType =
   | 'Micro Inverter Non Subsidy'
   | 'Hybrid Without Battery Non Subsidy';
 
-export type StructureType = '1 Meter Flat roof structure' | '2 Meter Flat roof structure' | 'Without Structure';
+export type StructureType = '1 Meter Flat Roof Structure' | '2 Meter Flat Roof Structure' | 'Without Structure';
 
-export type PanelType = 'TOPCON G2R' | 'TOPCON HJT' | 'MONO PERC Bifacial';
+export type PanelType = 'TOPCON G12R' | 'TOPCON HJT' | 'MONO PERC Bifacial';
 
 export type QuoteStatus = 'Site Survey Pending' | 'Site Survey Completed';
 
@@ -26,11 +26,11 @@ export const PROJECT_TYPES: ProjectType[] = [
 ];
 
 export const STRUCTURE_TYPES: StructureType[] = [
-  '1 Meter Flat roof structure', '2 Meter Flat roof structure', 'Without Structure'
+  '1 Meter Flat Roof Structure', '2 Meter Flat Roof Structure', 'Without Structure'
 ];
 
 export const PANEL_TYPES: PanelType[] = [
-  'TOPCON G2R', 'TOPCON HJT', 'MONO PERC Bifacial'
+  'TOPCON G12R', 'TOPCON HJT', 'MONO PERC Bifacial'
 ];
 
 export const QUOTE_STATUSES: QuoteStatus[] = [
@@ -148,9 +148,9 @@ export interface Quotation {
   mobile: string;
   email: string;
   location: string;
-  projectType: ProjectType;
-  structureType: StructureType;
-  panelType: PanelType;
+  projectType: ProjectType | '';
+  structureType: StructureType | '';
+  panelType: PanelType | '';
   status: QuoteStatus;
   pricing: PricingConfig;
   bom: BOMItem[];

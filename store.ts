@@ -4,12 +4,12 @@ import { supabase } from './supabaseClient';
 const SETTINGS_KEY = 'global';
 
 const DEFAULT_TERMS: Term[] = [
-  { id: '1', text: 'Structure height will be 1 to 3 feet from floor level.', enabled: true, order: 1, projectType: 'Ongrid Subsidy', structureType: '2 Meter Flat roof structure', panelType: 'TOPCON G2R' },
-  { id: '2', text: 'KSEB application & registration charges are included in the above cost.', enabled: true, order: 2, projectType: 'Ongrid Subsidy', structureType: '2 Meter Flat roof structure', panelType: 'TOPCON G2R' },
-  { id: '3', text: 'The customer shall provide necessary space and shadow-free area for installation.', enabled: true, order: 3, projectType: 'Ongrid Subsidy', structureType: '2 Meter Flat roof structure', panelType: 'TOPCON G2R' },
-  { id: '4', text: 'Civil works like concrete foundation if needed will be extra.', enabled: true, order: 4, projectType: 'Ongrid Subsidy', structureType: '2 Meter Flat roof structure', panelType: 'TOPCON G2R' },
-  { id: '5', text: 'The subsidy will be credited to the customer account as per govt norms.', enabled: true, order: 5, projectType: 'Ongrid Subsidy', structureType: '2 Meter Flat roof structure', panelType: 'TOPCON G2R' },
-  { id: '6', text: 'Any additional cabling beyond 30 meters will be charged extra.', enabled: true, order: 6, projectType: 'Ongrid Subsidy', structureType: '2 Meter Flat roof structure', panelType: 'TOPCON G2R' },
+  { id: '1', text: 'Structure height will be 1 to 3 feet from floor level.', enabled: true, order: 1, projectType: 'Ongrid Subsidy', structureType: '2 Meter Flat Roof Structure', panelType: 'TOPCON G12R' },
+  { id: '2', text: 'KSEB application & registration charges are included in the above cost.', enabled: true, order: 2, projectType: 'Ongrid Subsidy', structureType: '2 Meter Flat Roof Structure', panelType: 'TOPCON G12R' },
+  { id: '3', text: 'The customer shall provide necessary space and shadow-free area for installation.', enabled: true, order: 3, projectType: 'Ongrid Subsidy', structureType: '2 Meter Flat Roof Structure', panelType: 'TOPCON G12R' },
+  { id: '4', text: 'Civil works like concrete foundation if needed will be extra.', enabled: true, order: 4, projectType: 'Ongrid Subsidy', structureType: '2 Meter Flat Roof Structure', panelType: 'TOPCON G12R' },
+  { id: '5', text: 'The subsidy will be credited to the customer account as per govt norms.', enabled: true, order: 5, projectType: 'Ongrid Subsidy', structureType: '2 Meter Flat Roof Structure', panelType: 'TOPCON G12R' },
+  { id: '6', text: 'Any additional cabling beyond 30 meters will be charged extra.', enabled: true, order: 6, projectType: 'Ongrid Subsidy', structureType: '2 Meter Flat Roof Structure', panelType: 'TOPCON G12R' },
 ];
 
 const DEFAULT_BOM_3KW: BOMItem[] = [
@@ -23,8 +23,8 @@ const DEFAULT_PRICING: ProductPricing[] = [
     id: 'p3kw',
     name: '3kW Standard Pricing',
     projectType: 'Ongrid Subsidy',
-    structureType: '2 Meter Flat roof structure',
-    panelType: 'TOPCON G2R',
+    structureType: '2 Meter Flat Roof Structure',
+    panelType: 'TOPCON G12R',
     actualPlantCost: 185000,
     discount: 0,
     subsidyAmount: 78000,
@@ -39,8 +39,8 @@ const DEFAULT_WARRANTIES: WarrantyPackage[] = [
   {
     id: 'w-default',
     projectType: 'Ongrid Subsidy',
-    structureType: '2 Meter Flat roof structure',
-    panelType: 'TOPCON G2R',
+    structureType: '2 Meter Flat Roof Structure',
+    panelType: 'TOPCON G12R',
     panelWarranty: '25 Years Performance Warranty (Adani Solar)',
     inverterWarranty: '5 to 10 Years Product Warranty (On-Grid String)',
     batteryWarranty: '',
@@ -82,7 +82,7 @@ export const INITIAL_STATE: AppState = {
     { id: '3kw-std', name: '3kW Standard On-Grid', items: DEFAULT_BOM_3KW }
   ],
   productDescriptions: [
-    { id: '1', name: '3kW ON-GRID SOLAR POWER GENERATING SYSTEM', projectType: 'Ongrid Subsidy', structureType: '2 Meter Flat roof structure', panelType: 'TOPCON G2R', defaultPricingId: 'p3kw', defaultBomTemplateId: '3kw-std' }
+    { id: '1', name: '3kW ON-GRID SOLAR POWER GENERATING SYSTEM', projectType: 'Ongrid Subsidy', structureType: '2 Meter Flat Roof Structure', panelType: 'TOPCON G12R', defaultPricingId: 'p3kw', defaultBomTemplateId: '3kw-std' }
   ],
   users: DEFAULT_USERS,
   quotations: [],
