@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { AppState, Quotation, WarrantyPackage } from '../types';
 import { format } from 'date-fns';
@@ -9,6 +8,8 @@ interface Props {
 }
 
 const PrintableView: React.FC<Props> = ({ quotation, state }) => {
+  const isPendingSurvey = quotation.status === 'Site Survey Pending';
+
   // Filter terms by configuration and status
   const activeTerms = state.terms.filter(t => 
     t.enabled && 
@@ -32,8 +33,8 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
   );
 
   const PageFooter = ({ pageNum, noMarginTop = false }: { pageNum: number, noMarginTop?: boolean }) => (
-    <div className={`${noMarginTop ? '' : 'mt-auto'} pt-2 flex justify-between items-center text-[7pt] text-gray-400 font-bold uppercase tracking-[0.4em] w-full border-t border-gray-100`}>
-      <span>{state.company.name} // Ref: {quotation.id}</span>
+    <div className={`${noMarginTop ? '' : 'mt-auto'} pt-2 flex justify-between items-center text-[5pt] text-gray-400 font-bold uppercase tracking-[0.4em] w-full border-t border-gray-100`}>
+      <span>{state.company.name} {isPendingSurvey ? '' : `// Ref: ${quotation.id}`}</span>
       <span className="text-gray-300">Page {pageNum} of 4</span>
     </div>
   );
@@ -58,12 +59,30 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
     </div>
   );
 
-  const afterDiscount = quotation.pricing.actualPlantCost - quotation.pricing.discount;
-  const afterSubsidy = afterDiscount - quotation.pricing.subsidyAmount;
-  const grandTotal = afterSubsidy + quotation.pricing.ksebCharges + quotation.pricing.customizedStructureCost + quotation.pricing.additionalMaterialCost;
+  const pricing = quotation.pricing || {
+    actualPlantCost: 0,
+    discount: 0,
+    subsidyAmount: 0,
+    ksebCharges: 0,
+    customizedStructureCost: 0,
+    additionalMaterialCost: 0,
+    netMeterCost: 0
+  };
+
+  const actualPlantCost = pricing.actualPlantCost || 0;
+  const discount = pricing.discount || 0;
+  const subsidyAmount = pricing.subsidyAmount || 0;
+  const ksebCharges = pricing.ksebCharges || 0;
+  const customizedStructureCost = pricing.customizedStructureCost || 0;
+  const additionalMaterialCost = pricing.additionalMaterialCost || 0;
+  const netMeterCost = pricing.netMeterCost || 0;
+
+  const afterDiscount = actualPlantCost - discount;
+  const afterSubsidy = afterDiscount - subsidyAmount;
+  const grandTotal = afterSubsidy + ksebCharges + customizedStructureCost + additionalMaterialCost + netMeterCost;
 
   const isWithoutStructure = quotation.structureType === 'Without Structure';
-  const hasCustomizedStructureCost = (quotation.pricing.customizedStructureCost || 0) > 0;
+  const hasCustomizedStructureCost = customizedStructureCost > 0;
 
   const QualityAssuranceSection = () => {
     const isHybrid = quotation.projectType === 'Hybrid Subsidy' || quotation.projectType === 'Hybrid Non Subsidy';
@@ -104,25 +123,26 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
         <PageLogo />
         
         {/* Quotation No & Date at absolute position in the top margin area */}
-        <div className="absolute top-4 right-16 text-right z-30">
-          <span className="text-[4.5pt] font-black text-white bg-black px-1.5 py-0.5 rounded uppercase tracking-[0.1em] shadow-sm">Quotation No & Date</span>
-          <p className="text-[9pt] font-black mt-0.5 text-red-600 tracking-tight leading-none">{quotation.id}</p>
-          <p className="text-[5.5pt] text-gray-400 font-bold uppercase mt-0.5 tracking-wider">{format(new Date(quotation.date), 'dd MMMM yyyy')}</p>
-        </div>
+        {!isPendingSurvey && (
+          <div className="absolute top-4 right-16 text-right z-30">
+            <span className="text-[4.5pt] font-black text-white bg-black px-1.5 py-0.5 rounded uppercase tracking-[0.1em] shadow-sm">Quotation No & Date</span>
+            <p className="text-[9pt] font-black mt-0.5 text-red-600 tracking-tight leading-none">{quotation.id}</p>
+            <p className="text-[5.5pt] text-gray-400 font-bold uppercase mt-0.5 tracking-wider">{format(new Date(quotation.date), 'dd MMMM yyyy')}</p>
+          </div>
+        )}
 
         <div className="flex justify-between items-start border-b-2 border-black pb-3 mb-3 w-full mt-4">
           <div className="flex flex-col gap-1 items-start flex-1 pt-2">
             <div className="flex-1">
               <h1 className="text-[14pt] font-[900] text-black leading-none uppercase tracking-tighter whitespace-nowrap">{state.company.name}</h1>
-              <p className="text-[6pt] text-red-600 font-black tracking-[0.2em] uppercase mt-1 mb-3 whitespace-nowrap">ADANI SOLAR AUTHORIZED CHANNEL PARTNER</p>
+              <p className="text-[6pt] text-primary-red font-black tracking-[0.2em] uppercase mt-1 mb-3 whitespace-nowrap">ADANI SOLAR AUTHORIZED CHANNEL PARTNER</p>
               
               <div className="space-y-0.5">
-                {/* Regional Branch 1 */}
+                {/* Regional Branches */}
                 <p className="text-[7pt] text-gray-700 font-bold uppercase leading-tight">
                   <span className="text-black font-black text-[6pt] tracking-widest">REGIONAL BRANCHE 1: </span>
                   {state.company.regionalOffice1}
                 </p>
-                {/* Regional Branch 2 on a separate line below Branch 1 */}
                 {state.company.regionalOffice2 && (
                   <p className="text-[7pt] text-gray-700 font-bold uppercase leading-tight">
                     <span className="text-black font-black text-[6pt] tracking-widest">REGIONAL BRANCHE 2: </span>
@@ -133,17 +153,19 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
                   <span className="text-black font-black text-[6pt] tracking-widest">HEAD OFFICE: </span>
                   {state.company.headOffice}
                 </p>
-                {/* Contact line after Head Office */}
                 <p className="text-[7pt] text-gray-700 font-bold uppercase leading-tight pt-0.5">
                   <span className="text-black font-black text-[6pt] tracking-widest whitespace-nowrap">company website: {state.company.website} | mail id: {state.company.email} | Sales Support Contact: {state.company.phone}</span>
                 </p>
               </div>
 
-              <div className="mt-4 border-t border-gray-100 pt-2">
-                <p className="text-[8.5pt] font-black uppercase text-black whitespace-nowrap">
-                  Sales Person: {quotation.createdByName} &nbsp;&nbsp;|&nbsp;&nbsp; Sales Person Mobile No : {quotation.salesPersonMobile || 'N/A'}
-                </p>
-              </div>
+              {/* Sales Person Info: Only print if Survey is NOT Pending */}
+              {!isPendingSurvey && (
+                <div className="mt-4 border-t border-gray-100 pt-2">
+                  <p className="text-[8.5pt] font-black uppercase text-black whitespace-nowrap">
+                    Sales Person: {quotation.createdByName} &nbsp;&nbsp;|&nbsp;&nbsp; Sales Person Mobile No : {quotation.salesPersonMobile || 'N/A'}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -153,7 +175,6 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
              <h4 className="text-[7.5pt] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">CUSTOMER NAME :</h4>
              <p className="text-[14pt] font-[900] text-black uppercase leading-tight">{quotation.customerName}</p>
           </div>
-          {/* Customer info block split into two rows: row 1 (Consumer No, Mobile) and row 2 (Address) */}
           <div className="bg-gray-50 border border-gray-100 p-3 rounded-xl flex flex-col text-[8pt] font-bold text-gray-600 gap-2 shadow-sm">
             <div className="flex flex-wrap items-center justify-start gap-x-8 gap-y-1">
               <div className="flex items-center gap-2">
@@ -201,39 +222,38 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
                 <tr>
                   <td className="text-center text-gray-300 font-black">01</td>
                   <td className="py-2 uppercase tracking-tight text-gray-800">ACTUAL PLANT COST of {quotation.systemDescription}</td>
-                  <td className="text-right font-black pr-10 text-black text-[11pt]">₹ {quotation.pricing.actualPlantCost.toLocaleString('en-IN')}</td>
+                  <td className="text-right font-black pr-10 text-black text-[11pt]">₹ {actualPlantCost.toLocaleString('en-IN')}</td>
                 </tr>
                 <tr>
                   <td className="text-center text-gray-300 font-black">02</td>
                   <td className="py-2 uppercase tracking-tight text-green-600">Limited Period Discount</td>
-                  <td className="text-right font-black pr-10 text-green-600 text-[11pt]">(-) ₹ {quotation.pricing.discount.toLocaleString('en-IN')}</td>
+                  <td className="text-right font-black pr-10 text-green-600 text-[11pt]">(-) ₹ {discount.toLocaleString('en-IN')}</td>
                 </tr>
                 <tr className="bg-gray-50 border-t border-b">
                   <td className="text-center text-gray-400 font-black">-</td>
-                  <td className="py-2 uppercase font-black text-gray-900 tracking-widest">Cost of {quotation.systemDescription} AFTER DISCOUNT</td>
+                  <td className="py-2 uppercase font-black text-gray-900 tracking-tighter text-[7.5pt] leading-tight">Amount To Be Paid by The Customer to Kondaas After Limited Period Discount</td>
                   <td className="text-right font-black pr-10 text-black text-[11pt]">₹ {afterDiscount.toLocaleString('en-IN')}</td>
                 </tr>
                 <tr>
                   <td className="text-center text-red-200 font-black">03</td>
                   <td className="py-2 uppercase tracking-tight text-red-700 leading-snug">Subsidy Amount as Per PM Surya Ghar Approved Guidelines</td>
-                  <td className="text-right font-black pr-10 text-red-600 text-[11pt]">(-) ₹ {quotation.pricing.subsidyAmount.toLocaleString('en-IN')}</td>
+                  <td className="text-right font-black pr-10 text-red-600 text-[11pt]">(-) ₹ {subsidyAmount.toLocaleString('en-IN')}</td>
                 </tr>
                 <tr className="bg-red-50">
                   <td className="text-center text-red-600 font-black">-</td>
-                  <td className="py-2 uppercase font-black text-red-600 tracking-widest">Customer Effective Cost After Subsidy</td>
+                  <td className="py-2 uppercase font-black text-red-600 tracking-tighter">PLANT COST AFTER SUBSIDY</td>
                   <td className="text-right font-black pr-10 text-red-600 text-[14pt]">₹ {afterSubsidy.toLocaleString('en-IN')}</td>
                 </tr>
               </tbody>
             </table>
           </div>
 
-          {/* Additional Charges Table Section moved above summary bar */}
           <div className="rounded-xl overflow-hidden border border-gray-100 shadow-sm bg-gray-50/30">
             <table className="table-modern">
               <thead>
                 <tr className="bg-gray-100 text-gray-600">
                   <th className="w-20 text-center bg-gray-200 text-gray-700 !py-2 text-[6.5pt]">#</th>
-                  <th className="!py-2 bg-gray-200 text-gray-700 font-black text-[6.5pt] tracking-widest uppercase">ADDITIONAL CHARGES / CUSTOMER SCOPE</th>
+                  <th className="!py-2 bg-gray-200 text-gray-700 font-black text-[6.5pt] tracking-tighter uppercase">ADDITIONAL CHARGES / CUSTOMER SCOPE</th>
                   <th className="text-right w-44 pr-10 bg-gray-200 text-gray-700 font-black text-[10.5pt] tracking-widest uppercase">RATE (INR)</th>
                 </tr>
               </thead>
@@ -241,22 +261,41 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
                 <tr>
                   <td className="text-center text-gray-300 !py-1">04</td>
                   <td className="!py-1 uppercase text-gray-600">KSEB Charges</td>
-                  <td className="text-right font-black pr-10 text-gray-900 !py-1 text-[10pt]">₹ {quotation.pricing.ksebCharges.toLocaleString('en-IN')}</td>
+                  <td className="text-right font-black pr-10 text-gray-900 !py-1 text-[10pt]">₹ {ksebCharges.toLocaleString('en-IN')}</td>
                 </tr>
                 <tr>
                   <td className="text-center text-gray-300 !py-1">05</td>
                   <td className="!py-1 uppercase text-gray-600">Customized Structure Cost(Without GST)</td>
-                  <td className="text-right font-black pr-10 text-gray-900 !py-1 text-[10pt]">₹ {quotation.pricing.customizedStructureCost.toLocaleString('en-IN')}</td>
+                  <td className="text-right font-black pr-10 text-gray-900 !py-1 text-[10pt]">
+                    {isPendingSurvey && customizedStructureCost === 0 
+                      ? "Additional Cost As Per Site Condition" 
+                      : `₹ ${customizedStructureCost.toLocaleString('en-IN')}`
+                    }
+                  </td>
                 </tr>
                 <tr>
                   <td className="text-center text-gray-300 !py-1">06</td>
                   <td className="!py-1 uppercase text-gray-600">Additional Material Cost (If Applicable)</td>
-                  <td className="text-right font-black pr-10 text-gray-900 !py-1 text-[10pt]">₹ {quotation.pricing.additionalMaterialCost.toLocaleString('en-IN')}</td>
+                  <td className="text-right font-black pr-10 text-gray-900 !py-1 text-[10pt]">
+                    {isPendingSurvey && additionalMaterialCost === 0 
+                      ? "Additional Cost As Per Site Condition" 
+                      : `₹ ${additionalMaterialCost.toLocaleString('en-IN')}`
+                    }
+                  </td>
+                </tr>
+                <tr>
+                  <td className="text-center text-gray-300 !py-1">07</td>
+                  <td className="!py-1 uppercase text-gray-600">Net Meter Cost</td>
+                  <td className="text-right font-black pr-10 text-gray-900 !py-1 text-[10pt]">
+                    {netMeterCost === 0 
+                      ? "Customer Scope" 
+                      : `₹ ${netMeterCost.toLocaleString('en-IN')}`
+                    }
+                  </td>
                 </tr>
               </tbody>
             </table>
 
-            {/* Final Total Summary Bar at the bottom of the second container */}
             <div className="pricing-summary-row h-auto py-4">
               <div className="flex-1 pr-4 overflow-visible">
                 <p className="text-[7pt] font-[900] uppercase tracking-tighter leading-tight whitespace-nowrap">CUSTOMER EFFECTIVE COST AFTER SUBSIDY - INCLUDING KSEB CHARGES AS PER THE CURRENT SLAB</p>
@@ -309,7 +348,7 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
                 </tr>
               </thead>
               <tbody className="text-[9pt]">
-                {quotation.bom.map((item, idx) => (
+                {(quotation.bom || []).map((item, idx) => (
                   <tr key={item.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}>
                     <td className="py-1.5 px-2 border-b">{idx + 1}</td>
                     <td className="py-1.5 px-2 border-b font-medium">{item.product}</td>
@@ -363,6 +402,10 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
                   <span className="text-black text-right">{state.bank.bankName}</span>
                 </div>
                 <div className="flex justify-between border-b pb-1">
+                  <span className="text-gray-400 uppercase text-[7.5pt] font-black tracking-widest">Bank Branch</span>
+                  <span className="text-black text-right">{state.bank.branch}</span>
+                </div>
+                <div className="flex justify-between border-b pb-1">
                   <span className="text-gray-400 uppercase text-[7.5pt] font-black tracking-widest">Account No.</span>
                   <span className="font-black tracking-widest">{state.bank.accountNumber}</span>
                 </div>
@@ -370,9 +413,22 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
                   <span className="text-gray-400 uppercase text-[7.5pt] font-black tracking-widest">IFSC Code</span>
                   <span className="font-black text-red-600">{state.bank.ifsc}</span>
                 </div>
+                <div className="flex justify-between border-b pb-1">
+                  <span className="text-gray-400 uppercase text-[7.5pt] font-black tracking-widest">PAN Number</span>
+                  <span className="font-black uppercase">{state.bank.pan}</span>
+                </div>
                 <div className="mt-3 text-center p-2 bg-white border border-red-50 rounded-xl shadow-inner">
                   <p className="text-[7.5pt] text-gray-400 uppercase font-black mb-1 tracking-widest">UPI ID</p>
                   <span className="text-[11pt] font-black text-black">{state.bank.upiId}</span>
+                </div>
+                <div className="mt-3 pt-2 border-t border-gray-100">
+                  <p className="text-[7pt] text-gray-400 uppercase font-black mb-1 tracking-widest text-center">Bank Address</p>
+                  <p className="text-[8.5pt] text-black leading-tight text-center font-bold px-2">{state.bank.address}</p>
+                </div>
+                <div className="mt-3 px-2">
+                  <p className="text-[7pt] text-red-600 font-bold text-center leading-tight">
+                    All Payments Must Be Made to Kondaas Automation Private Limited Head Office Bank Account only
+                  </p>
                 </div>
               </div>
             </div>
@@ -380,29 +436,35 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
               <h4 className="text-[8.5pt] font-black uppercase tracking-[0.25em] mb-7 text-red-500 text-center border-b border-gray-800 pb-3">Project Roadmap</h4>
               <div className="space-y-8">
                 {[
-                  { s: '01', t: 'Delivery', d: '7-10 Days After Advance & Approval' },
-                  { s: '02', t: 'Payment', d: '10% Advance, 90% at delivery' },
-                  { s: '03', t: 'Setup', d: '7-10 Days from final payment clearance' },
+                  { s: '01', t: 'Delivery', d: '7-10 Days After Advance & KSEB Approval' },
+                  { s: '02', t: 'Payment', d: 'Ready payment : 10% Advance, 90% at the time of delivery \n Loan :10% Advance, 70% before delivery,20% After Installation/Before KSEB Documentation' },
+                  { s: '03', t: 'Installation', d: '7-10 Days as per payment terms and condition' },
                 ].map((t, idx) => (
                   <div key={idx} className="flex gap-5 items-start">
                     <span className="text-[22pt] font-black text-gray-800 leading-none">{t.s}</span>
                     <div className="flex-1">
                       <p className="text-[10.5pt] font-black uppercase tracking-tight mb-1.5 text-white">{t.t}</p>
-                      <p className="text-[8pt] text-gray-500 font-bold leading-relaxed">{t.d}</p>
+                      <p className="text-[8pt] text-gray-500 font-bold leading-relaxed whitespace-pre-line">{t.d}</p>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
           </div>
-          <div className="bg-gray-50 border border-gray-100 p-6 rounded-3xl mb-2 w-full shadow-inner">
-            <h4 className="text-[10pt] font-black text-red-600 uppercase tracking-[0.3em] mb-6 text-center">Required Documents for Subsidy Claim</h4>
-            <div className="grid grid-cols-2 gap-x-12 gap-y-4 text-[9pt] font-bold text-gray-700 mb-6">
-              <p className="flex items-center gap-3"><span className="w-2 h-2 rounded-full bg-red-500"></span> Aadhar Card Copy</p>
-              <p className="flex items-center gap-3"><span className="w-2 h-2 rounded-full bg-red-500"></span> Electricity Bill Copy</p>
-              <p className="flex items-center gap-3"><span className="w-2 h-2 rounded-full bg-red-500"></span> Bank Passbook Front Page</p>
-              <p className="flex items-center gap-3"><span className="w-2 h-2 rounded-full bg-red-500"></span> Passport Size Photo</p>
+          <div className="bg-gray-50 border border-gray-100 p-5 rounded-3xl mb-2 w-full shadow-inner">
+            <h4 className="text-[10pt] font-black text-red-600 uppercase tracking-[0.3em] mb-4 text-center">Required Documents for Subsidy Claim</h4>
+            <div className="flex flex-col gap-y-2 text-[8.5pt] font-bold text-gray-700 mb-4 max-w-xl mx-auto px-6">
+              <p className="flex items-center gap-3"><span className="w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0"></span> Mobile Number</p>
+              <p className="flex items-center gap-3"><span className="w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0"></span> Email ID</p>
+              <p className="flex items-center gap-3"><span className="w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0"></span> Google Map Location (Longitude and Latitude)</p>
+              <p className="flex items-center gap-3"><span className="w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0"></span> Aadhar Card</p>
+              <p className="flex items-center gap-3"><span className="w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0"></span> Cancelled Cheque / Bank Passbook Front Page / E-Statement</p>
+              <p className="flex items-center gap-3"><span className="w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0"></span> KSEB Bill</p>
+              <p className="flex items-center gap-3"><span className="w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0"></span> Passport Size Photo</p>
             </div>
+            <p className="text-[8pt] font-black text-red-600 text-center border-t border-red-100 pt-2 italic">
+              Note : All documents should belong to the KSEB consumer number owner's name
+            </p>
           </div>
           <div className="pt-1 flex justify-end px-10 w-full mt-0 mb-2">
             <CompanySealBlock imageBottomClass="bottom-4" />

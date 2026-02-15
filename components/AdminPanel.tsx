@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { AppState, Quotation, User } from '../types';
 import { Edit3, Trash2, Search, Printer, FileSpreadsheet, Download, FileDown, Layers } from 'lucide-react';
@@ -32,7 +31,7 @@ const AdminPanel: React.FC<Props> = ({ state, currentUser, onEdit, onPrint, onDo
   const exportToExcel = (q: Quotation) => {
     const afterDiscount = q.pricing.actualPlantCost - q.pricing.discount;
     const afterSubsidy = afterDiscount - q.pricing.subsidyAmount;
-    const finalTotal = afterSubsidy + q.pricing.ksebCharges + q.pricing.customizedStructureCost + q.pricing.additionalMaterialCost;
+    const finalTotal = afterSubsidy + q.pricing.ksebCharges + q.pricing.customizedStructureCost + q.pricing.additionalMaterialCost + (q.pricing.netMeterCost || 0);
 
     const pricingData = [
       ['Quotation No', q.id],
@@ -48,6 +47,7 @@ const AdminPanel: React.FC<Props> = ({ state, currentUser, onEdit, onPrint, onDo
       ['Subsidy Amount', q.pricing.subsidyAmount],
       ['Plant Cost After Subsidy', afterSubsidy],
       ['KSEB Charges', q.pricing.ksebCharges],
+      ['Net Meter Cost', q.pricing.netMeterCost || 0],
       ['Final Net Investment', finalTotal],
     ];
     
@@ -68,7 +68,7 @@ const AdminPanel: React.FC<Props> = ({ state, currentUser, onEdit, onPrint, onDo
     const reportData = state.quotations.map(q => {
         const afterDiscount = q.pricing.actualPlantCost - q.pricing.discount;
         const afterSubsidy = afterDiscount - q.pricing.subsidyAmount;
-        const finalTotal = afterSubsidy + q.pricing.ksebCharges + q.pricing.customizedStructureCost + q.pricing.additionalMaterialCost;
+        const finalTotal = afterSubsidy + q.pricing.ksebCharges + q.pricing.customizedStructureCost + q.pricing.additionalMaterialCost + (q.pricing.netMeterCost || 0);
         
         return {
             'Quote ID': q.id,
@@ -79,6 +79,7 @@ const AdminPanel: React.FC<Props> = ({ state, currentUser, onEdit, onPrint, onDo
             'Actual Cost (₹)': q.pricing.actualPlantCost,
             'Discount (₹)': q.pricing.discount,
             'Subsidy (₹)': q.pricing.subsidyAmount,
+            'Net Meter Cost (₹)': q.pricing.netMeterCost || 0,
             'Net Investment (₹)': finalTotal,
             'Sales Person': q.createdByName
         };
@@ -126,7 +127,7 @@ const AdminPanel: React.FC<Props> = ({ state, currentUser, onEdit, onPrint, onDo
               {filteredQuotes.map(q => {
                   const afterDiscount = q.pricing.actualPlantCost - q.pricing.discount;
                   const afterSubsidy = afterDiscount - q.pricing.subsidyAmount;
-                  const finalTotal = afterSubsidy + q.pricing.ksebCharges + q.pricing.customizedStructureCost + q.pricing.additionalMaterialCost;
+                  const finalTotal = afterSubsidy + q.pricing.ksebCharges + q.pricing.customizedStructureCost + q.pricing.additionalMaterialCost + (q.pricing.netMeterCost || 0);
                   
                   return (
                 <tr key={q.id} className="hover:bg-gray-50 transition-colors">

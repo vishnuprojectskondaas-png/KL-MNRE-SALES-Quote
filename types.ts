@@ -1,4 +1,3 @@
-
 export type ProjectType = 
   | 'Ongrid Subsidy' 
   | 'Hybrid Subsidy' 
@@ -12,6 +11,8 @@ export type ProjectType =
 export type StructureType = '1 Meter Flat roof structure' | '2 Meter Flat roof structure' | 'Without Structure';
 
 export type PanelType = 'TOPCON G2R' | 'TOPCON HJT' | 'MONO PERC Bifacial';
+
+export type QuoteStatus = 'Site Survey Pending' | 'Site Survey Completed';
 
 export const PROJECT_TYPES: ProjectType[] = [
   'Ongrid Subsidy', 
@@ -30,6 +31,10 @@ export const STRUCTURE_TYPES: StructureType[] = [
 
 export const PANEL_TYPES: PanelType[] = [
   'TOPCON G2R', 'TOPCON HJT', 'MONO PERC Bifacial'
+];
+
+export const QUOTE_STATUSES: QuoteStatus[] = [
+  'Site Survey Pending', 'Site Survey Completed'
 ];
 
 export interface CompanyConfig {
@@ -64,6 +69,7 @@ export interface PricingConfig {
   ksebCharges: number;
   additionalMaterialCost: number;
   customizedStructureCost: number;
+  netMeterCost: number;
 }
 
 export interface ProductPricing extends PricingConfig {
@@ -145,6 +151,7 @@ export interface Quotation {
   projectType: ProjectType;
   structureType: StructureType;
   panelType: PanelType;
+  status: QuoteStatus;
   pricing: PricingConfig;
   bom: BOMItem[];
   systemDescription: string;

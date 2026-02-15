@@ -124,15 +124,21 @@ const App: React.FC = () => {
       if (!pdfRef.current) return;
       
       const element = pdfRef.current;
+      
+      // Determine filename: Use Product Description if Site Survey Pending
+      const fileName = q.status === 'Site Survey Pending' 
+        ? `${q.systemDescription.replace(/\s+/g, '_')}.pdf`
+        : `${q.customerName.replace(/\s+/g, '_')}_${q.id}.pdf`;
+
       const opt = {
         margin: 0,
-        filename: `${q.customerName.replace(/\s+/g, '_')}_${q.id}.pdf`,
-        image: { type: 'jpeg', quality: 1.0 }, 
+        filename: fileName,
+        image: { type: 'jpeg', quality: 0.95 },
         html2canvas: { 
-          scale: 4, 
+          scale: 2,
           useCORS: true, 
           logging: false,
-          letterRendering: true,
+          letterRendering: false,
           scrollX: 0,
           scrollY: 0,
           x: 0,
@@ -144,9 +150,9 @@ const App: React.FC = () => {
           unit: 'mm', 
           format: 'a4', 
           orientation: 'portrait', 
-          compress: false, 
+          compress: true,
           putOnlyUsedFonts: true,
-          precision: 16
+          precision: 12
         },
         pagebreak: { mode: ['css', 'legacy'] }
       };
@@ -159,7 +165,7 @@ const App: React.FC = () => {
       } finally {
         setDownloadingQuote(null);
       }
-    }, 1000);
+    }, 800);
   };
 
   if (isLoading) {
@@ -325,8 +331,8 @@ const App: React.FC = () => {
         <div className="fixed inset-0 bg-black/70 flex flex-col items-center justify-center z-[9999] no-print">
           <div className="bg-white p-8 rounded-2xl shadow-2xl flex flex-col items-center text-center">
             <div className="w-14 h-14 border-4 border-red-600 border-t-transparent rounded-full animate-spin mb-6"></div>
-            <h2 className="text-xl font-black text-gray-900 mb-2">Generating Ultra-HD PDF</h2>
-            <p className="text-sm text-gray-500">Scaling canvas to 400% for lossless text and logos...</p>
+            <h2 className="text-xl font-black text-gray-900 mb-2">Generating Optimized PDF</h2>
+            <p className="text-sm text-gray-500">Compressing graphics for fast sharing while maintaining HD clarity...</p>
           </div>
         </div>
       )}
@@ -423,7 +429,8 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
       subsidyAmount: 0,
       ksebCharges: 0,
       additionalMaterialCost: 0,
-      customizedStructureCost: 0
+      customizedStructureCost: 0,
+      netMeterCost: 0
     };
     updateSub('productPricing', [...currentPricing, newItem]);
     setEditingItemId(newId);
@@ -508,6 +515,7 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
           discount: Number(row['Discount'] || 0),
           subsidyAmount: Number(row['Subsidy Amount'] || 0),
           ksebCharges: Number(row['KSEB Charges'] || 0),
+          netMeterCost: Number(row['Net Meter Cost'] || 0),
           additionalMaterialCost: 0,
           customizedStructureCost: 0
         }));
@@ -667,7 +675,8 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
         'Actual Cost': 185000,
         'Discount': 5000,
         'Subsidy Amount': 78000,
-        'KSEB Charges': 1500
+        'KSEB Charges': 1500,
+        'Net Meter Cost': 2000
       }
     ];
 
@@ -956,6 +965,7 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
                           <td className="px-6 py-4"><span className={`px-2 py-0.5 text-[9px] font-black uppercase rounded-full border ${u.role === 'admin' ? 'bg-red-50 text-red-600 border-red-100' : u.role === 'TL' ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-gray-50 text-gray-600 border-gray-100'}`}>{u.role}</span></td>
                           <td className="px-6 py-4 text-right space-x-3">
                              <button onClick={() => handleEditUser(u)} className="text-blue-600 hover:text-blue-800"><Edit className="w-4 h-4 inline"/></button>
+                             {/* Fixed "Cannot find name 'id'" error by specifying the correct user object property u.id */}
                              <button onClick={() => handleDeleteUser(u.id)} className="text-red-600 hover:text-red-800"><Trash2 className="w-4 h-4 inline"/></button>
                           </td>
                        </tr>
@@ -1015,6 +1025,7 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
                         <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Subsidy Amount (₹)</label><input type="number" value={p.subsidyAmount} onChange={e => updatePricingItem(p.id, { subsidyAmount: Number(e.target.value) })} className="w-full border p-2 rounded text-red-600 font-bold bg-white" /></div>
                       )}
                       <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">KSEB Charges (₹)</label><input type="number" value={p.ksebCharges} onChange={e => updatePricingItem(p.id, { ksebCharges: Number(e.target.value) })} className="w-full border p-2 rounded bg-white" /></div>
+                      <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Net Meter Cost (₹)</label><input type="number" value={p.netMeterCost || 0} onChange={e => updatePricingItem(p.id, { netMeterCost: Number(e.target.value) })} className="w-full border p-2 rounded bg-white" /></div>
                     </div>
                   )}
                 </div>
@@ -1185,7 +1196,7 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
               <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">IFSC Code</label><input value={state.bank?.ifsc || ''} onChange={e => updateSub('bank', { ...state.bank, ifsc: e.target.value })} className="w-full border p-3 rounded-lg font-bold text-red-600 bg-white" /></div>
               <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">PAN Number</label><input value={state.bank?.pan || ''} onChange={e => updateSub('bank', { ...state.bank, pan: e.target.value })} className="w-full border p-3 rounded-lg bg-white font-mono" /></div>
               <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">UPI ID for Direct Payment</label><input value={state.bank?.upiId || ''} onChange={e => updateSub('bank', { ...state.bank, upiId: e.target.value })} className="w-full border p-3 rounded-lg bg-white font-bold" /></div>
-              <div className="md:col-span-2"><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Bank Address (Full)</label><textarea value={state.bank?.address || ''} onChange={e => updateSub('bank', { ...state.bank, address: e.target.value })} className="w-full border p-3 rounded-lg bg-white" rows={2}/></div>
+              <div className="md:col-span-2"><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Bank Address</label><textarea value={state.bank?.address || ''} onChange={e => updateSub('bank', { ...state.bank, address: e.target.value })} className="w-full border p-3 rounded-lg bg-white" rows={2}/></div>
             </div>
           </div>
         )}

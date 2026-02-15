@@ -1,4 +1,3 @@
-
 import { AppState, Term, BOMItem, ProductPricing, Quotation, User, ProductDescription, WarrantyPackage } from './types';
 import { supabase } from './supabaseClient';
 
@@ -31,7 +30,8 @@ const DEFAULT_PRICING: ProductPricing[] = [
     subsidyAmount: 78000,
     ksebCharges: 0,
     additionalMaterialCost: 0,
-    customizedStructureCost: 0
+    customizedStructureCost: 0,
+    netMeterCost: 0
   }
 ];
 
