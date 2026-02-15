@@ -389,9 +389,6 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
             ))}
           </div>
         </div>
-        <div className="mt-auto flex justify-end px-10 mb-2">
-          <CompanySealBlock imageBottomClass="bottom-4" />
-        </div>
         <PageFooter pageNum={3} />
       </div>
 
