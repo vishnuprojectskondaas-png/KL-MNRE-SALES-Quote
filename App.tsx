@@ -4,7 +4,7 @@ import { AppState, Quotation, BOMTemplate, BOMItem, ProductPricing, ProductDescr
 import AdminPanel from './components/AdminPanel';
 import QuotationForm from './components/QuotationForm';
 import PrintableView from './components/PrintableView';
-import { LogIn, FileText, Settings, LayoutDashboard, PlusCircle, LogOut, Trash2, Plus, Copy, ChevronDown, ChevronUp, Loader2, Link, Users, UserPlus, CheckCircle, AlertCircle, Edit, Filter, RefreshCw, Upload, DownloadCloud, ShieldCheck } from 'lucide-react';
+import { LogIn, FileText, Settings, LayoutDashboard, PlusCircle, LogOut, Trash2, Plus, Copy, ChevronDown, ChevronUp, Loader2, Link, Users, UserPlus, CheckCircle, AlertCircle, Edit, Filter, RefreshCw, Upload, DownloadCloud, ShieldCheck, Search } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 declare var html2pdf: any;
@@ -350,6 +350,7 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
   const [filterProjectType, setFilterProjectType] = useState<string>('All');
   const [filterStructureType, setFilterStructureType] = useState<string>('All');
   const [filterPanelType, setFilterPanelType] = useState<string>('All');
+  const [bomSearch, setBomSearch] = useState<string>('');
 
   const [newUser, setNewUser] = useState<Partial<User>>({ role: 'user', name: '', username: '', password: '', salesPersonName: '', salesPersonMobile: '' });
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
@@ -879,6 +880,10 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
     return ptMatch && stMatch && paMatch;
   });
 
+  const filteredBOMTemplates = templatesList.filter(t => 
+    t.name.toLowerCase().includes(bomSearch.toLowerCase())
+  );
+
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden relative">
       <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
@@ -900,38 +905,55 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
       </div>
       
       <div className="p-8">
-        {(activeSubTab === 'pricing' || activeSubTab === 'products' || activeSubTab === 'warranty' || activeSubTab === 'terms') && (
+        {(activeSubTab === 'pricing' || activeSubTab === 'products' || activeSubTab === 'warranty' || activeSubTab === 'terms' || activeSubTab === 'bom') && (
            <div className="flex flex-wrap gap-4 items-center mb-6 p-4 bg-gray-100 rounded-lg border border-gray-200">
              <div className="flex items-center gap-2">
                <Filter className="w-4 h-4 text-gray-500" />
                <span className="text-xs font-black uppercase text-gray-400">View Filters:</span>
              </div>
-             <select 
-               className="text-xs font-bold border rounded p-1.5 bg-white outline-none focus:ring-1 focus:ring-red-500"
-               value={filterProjectType}
-               onChange={e => setFilterProjectType(e.target.value)}
-             >
-               <option value="All">All Project Types</option>
-               {PROJECT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-             </select>
-             <select 
-               className="text-xs font-bold border rounded p-1.5 bg-white outline-none focus:ring-1 focus:ring-red-500"
-               value={filterStructureType}
-               onChange={e => setFilterStructureType(e.target.value)}
-             >
-               <option value="All">All Structure Types</option>
-               {STRUCTURE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-             </select>
-             <select 
-               className="text-xs font-bold border rounded p-1.5 bg-white outline-none focus:ring-1 focus:ring-red-500"
-               value={filterPanelType}
-               onChange={e => setFilterPanelType(e.target.value)}
-             >
-               <option value="All">All Panel Types</option>
-               {PANEL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-             </select>
+             
+             {activeSubTab !== 'bom' ? (
+               <>
+                 <select 
+                   className="text-xs font-bold border rounded p-1.5 bg-white outline-none focus:ring-1 focus:ring-red-500"
+                   value={filterProjectType}
+                   onChange={e => setFilterProjectType(e.target.value)}
+                 >
+                   <option value="All">All Project Types</option>
+                   {PROJECT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                 </select>
+                 <select 
+                   className="text-xs font-bold border rounded p-1.5 bg-white outline-none focus:ring-1 focus:ring-red-500"
+                   value={filterStructureType}
+                   onChange={e => setFilterStructureType(e.target.value)}
+                 >
+                   <option value="All">All Structure Types</option>
+                   {STRUCTURE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                 </select>
+                 <select 
+                   className="text-xs font-bold border rounded p-1.5 bg-white outline-none focus:ring-1 focus:ring-red-500"
+                   value={filterPanelType}
+                   onChange={e => setFilterPanelType(e.target.value)}
+                 >
+                   <option value="All">All Panel Types</option>
+                   {PANEL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                 </select>
+               </>
+             ) : (
+               <div className="relative flex-1 md:max-w-sm">
+                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                 <input 
+                   type="text" 
+                   placeholder="Search templates by name..."
+                   value={bomSearch}
+                   onChange={e => setBomSearch(e.target.value)}
+                   className="pl-8 pr-4 py-1.5 w-full bg-white border rounded text-xs font-bold outline-none focus:ring-1 focus:ring-red-500"
+                 />
+               </div>
+             )}
+
              <button 
-               onClick={() => { setFilterProjectType('All'); setFilterStructureType('All'); setFilterPanelType('All'); }}
+               onClick={() => { setFilterProjectType('All'); setFilterStructureType('All'); setFilterPanelType('All'); setBomSearch(''); }}
                className="text-[10px] font-black text-gray-400 uppercase hover:text-red-600 flex items-center gap-1 transition-colors ml-auto"
              >
                <RefreshCw className="w-3 h-3"/> Reset
@@ -1351,7 +1373,7 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
               </div>
             </div>
             <div className="space-y-4">
-              {templatesList.map(template => (
+              {filteredBOMTemplates.map(template => (
                 <div key={template.id} className="border rounded-lg bg-gray-50 overflow-hidden shadow-sm border-gray-100">
                   <div className="p-4 flex items-center gap-4 bg-white border-b">
                     <button onClick={() => setExpandedTemplateId(expandedTemplateId === template.id ? null : template.id)} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">{expandedTemplateId === template.id ? <ChevronUp className="w-5 h-5 text-gray-400"/> : <ChevronDown className="w-5 h-5 text-gray-400"/>}</button>
@@ -1388,7 +1410,7 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
                   )}
                 </div>
               ))}
-              {templatesList.length === 0 && <p className="text-center py-10 text-gray-400 text-xs font-bold uppercase tracking-widest border-2 border-dashed rounded-lg">Create a BOM template to get started.</p>}
+              {filteredBOMTemplates.length === 0 && <p className="text-center py-10 text-gray-400 text-xs font-bold uppercase tracking-widest border-2 border-dashed rounded-lg">No templates found matching your search.</p>}
             </div>
           </div>
         )}

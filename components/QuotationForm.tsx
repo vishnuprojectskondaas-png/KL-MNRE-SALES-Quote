@@ -277,7 +277,7 @@ const QuotationForm: React.FC<Props> = ({ state, currentUser, editData, onSave, 
             )}
 
             <div>
-              <label className="block text-xs uppercase font-black text-gray-400 mb-1">PLANT COST AFTER SUBSIDY</label>
+              <label className="block text-xs uppercase font-black text-gray-400 mb-1">on-grid ROOFTOP SOLAR POWER PLANT COST AFTER SUBSIDY</label>
               <input type="text" readOnly value={`₹ ${afterSubsidy.toLocaleString('en-IN')}`} className="w-full border p-2 rounded bg-gray-100 font-black" />
             </div>
             <div>
@@ -294,6 +294,12 @@ const QuotationForm: React.FC<Props> = ({ state, currentUser, editData, onSave, 
                   className="w-full border-2 border-red-100 p-2 rounded shadow-inner bg-white font-bold focus:border-red-500 outline-none" 
                   placeholder="Enter structure cost"
                 />
+              </div>
+            )}
+            {formData.structureType === '1 Meter Flat Roof Structure' && (
+              <div>
+                <label className="block text-xs uppercase font-black text-gray-400 mb-1">4 Feet Flat Roof Structure Cost</label>
+                <div className="w-full border p-2.5 rounded bg-gray-100 font-black text-green-600">Included</div>
               </div>
             )}
             <div>

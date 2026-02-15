@@ -241,7 +241,7 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
                 </tr>
                 <tr className="bg-red-50">
                   <td className="text-center text-red-600 font-black">-</td>
-                  <td className="py-2 uppercase font-black text-red-600 tracking-tighter">PLANT COST AFTER SUBSIDY</td>
+                  <td className="py-2 uppercase font-black text-red-600 tracking-tighter">on-grid ROOFTOP SOLAR POWER PLANT COST AFTER SUBSIDY</td>
                   <td className="text-right font-black pr-10 text-red-600 text-[14pt]">₹ {afterSubsidy.toLocaleString('en-IN')}</td>
                 </tr>
               </tbody>
@@ -254,29 +254,33 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
                 <tr className="bg-gray-100 text-gray-600">
                   <th className="w-20 text-center bg-gray-200 text-gray-700 !py-2 text-[6.5pt]">#</th>
                   <th className="!py-2 bg-gray-200 text-gray-700 font-black text-[6.5pt] tracking-tighter uppercase">ADDITIONAL CHARGES / CUSTOMER SCOPE</th>
-                  <th className="text-right w-44 pr-10 bg-gray-200 text-gray-700 font-black text-[10.5pt] tracking-widest uppercase">RATE (INR)</th>
+                  <th className="text-left w-52 pl-6 bg-gray-200 text-gray-700 font-black text-[10.5pt] tracking-widest uppercase">RATE (INR)</th>
                 </tr>
               </thead>
               <tbody className="text-[8pt] font-bold">
                 <tr>
                   <td className="text-center text-gray-300 !py-1">04</td>
                   <td className="!py-1 uppercase text-gray-600">KSEB Charges</td>
-                  <td className="text-right font-black pr-10 text-gray-900 !py-1 text-[10pt]">₹ {ksebCharges.toLocaleString('en-IN')}</td>
+                  <td className="text-left font-black pl-6 text-gray-900 !py-1 text-[10pt] whitespace-nowrap">₹ {ksebCharges.toLocaleString('en-IN')}</td>
                 </tr>
                 <tr>
                   <td className="text-center text-gray-300 !py-1">05</td>
-                  <td className="!py-1 uppercase text-gray-600">Customized Structure Cost(Without GST)</td>
-                  <td className="text-right font-black pr-10 text-gray-900 !py-1 text-[10pt]">
-                    {isPendingSurvey && customizedStructureCost === 0 
-                      ? "Additional Cost As Per Site Condition" 
-                      : `₹ ${customizedStructureCost.toLocaleString('en-IN')}`
+                  <td className="!py-1 uppercase text-gray-600">
+                    {quotation.structureType === '1 Meter Flat Roof Structure' ? '4 Feet Flat Roof Structure Cost' : 'Customized Structure Cost(Without GST)'}
+                  </td>
+                  <td className="text-left font-black pl-6 text-gray-900 !py-1 text-[10pt] whitespace-nowrap">
+                    {quotation.structureType === '1 Meter Flat Roof Structure' 
+                      ? "Included" 
+                      : (isPendingSurvey && customizedStructureCost === 0 
+                          ? "Additional Cost As Per Site Condition" 
+                          : `₹ ${customizedStructureCost.toLocaleString('en-IN')}`)
                     }
                   </td>
                 </tr>
                 <tr>
                   <td className="text-center text-gray-300 !py-1">06</td>
                   <td className="!py-1 uppercase text-gray-600">Additional Material Cost (If Applicable)</td>
-                  <td className="text-right font-black pr-10 text-gray-900 !py-1 text-[10pt]">
+                  <td className="text-left font-black pl-6 text-gray-900 !py-1 text-[10pt] whitespace-nowrap">
                     {isPendingSurvey && additionalMaterialCost === 0 
                       ? "Additional Cost As Per Site Condition" 
                       : `₹ ${additionalMaterialCost.toLocaleString('en-IN')}`
@@ -285,10 +289,10 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
                 </tr>
                 <tr>
                   <td className="text-center text-gray-300 !py-1">07</td>
-                  <td className="!py-1 uppercase text-gray-600">Net Meter Cost</td>
-                  <td className="text-right font-black pr-10 text-gray-900 !py-1 text-[10pt]">
+                  <td className="!py-1 uppercase text-gray-600 text-[7pt]">scope of NET METER</td>
+                  <td className="text-left font-black pl-6 text-gray-900 !py-1 text-[10pt] whitespace-nowrap">
                     {netMeterCost === 0 
-                      ? "Customer Scope" 
+                      ? "KSEB/Customer Scope" 
                       : `₹ ${netMeterCost.toLocaleString('en-IN')}`
                     }
                   </td>
@@ -320,12 +324,13 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
           </div>
         </div>
 
-        <div className="mt-auto w-full flex justify-center items-end px-10 mb-2">
+        <div className="mt-auto w-full flex justify-between items-end px-10 mb-2">
           <div className="pb-4">
             <p className="text-[7pt] font-black text-red-600 uppercase tracking-[0.2em] border border-red-100 px-3 py-1.5 rounded-lg bg-red-50/30">
               Check TERMS AND CONDITIONS PAGE 3
             </p>
           </div>
+          <CompanySealBlock imageBottomClass="bottom-4" />
         </div>
         <PageFooter pageNum={1} noMarginTop />
       </div>
@@ -364,6 +369,9 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
 
           <QualityAssuranceSection />
         </div>
+        <div className="mt-auto flex justify-end px-10 mb-2">
+          <CompanySealBlock imageBottomClass="bottom-4" />
+        </div>
         <PageFooter pageNum={2} />
       </div>
 
@@ -380,6 +388,9 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
               </div>
             ))}
           </div>
+        </div>
+        <div className="mt-auto flex justify-end px-10 mb-2">
+          <CompanySealBlock imageBottomClass="bottom-4" />
         </div>
         <PageFooter pageNum={3} />
       </div>
