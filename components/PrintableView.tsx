@@ -41,7 +41,7 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
 
   const PageLogo = () => (
     state.company.logo ? (
-      <img src={state.company.logo} alt="Logo" className="absolute top-4 left-5 h-12 w-auto object-contain z-20" />
+      <img src={state.company.logo} alt="Logo" crossOrigin="anonymous" referrerPolicy="no-referrer" className="absolute top-4 left-5 h-12 w-auto object-contain z-20" />
     ) : null
   );
 
@@ -49,7 +49,7 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
     <div className="text-center w-52">
       <div className="h-16 border-b border-gray-100 mb-1 relative">
          {state.company.seal ? (
-           <img src={state.company.seal} alt="Seal" className={`absolute ${imageBottomClass} left-1/2 -translate-x-1/2 h-16 w-auto object-contain z-10`} />
+           <img src={state.company.seal} alt="Seal" crossOrigin="anonymous" referrerPolicy="no-referrer" className={`absolute ${imageBottomClass} left-1/2 -translate-x-1/2 h-16 w-auto object-contain z-10`} />
          ) : (
            <span className="absolute bottom-1 left-1/2 -translate-x-1/2 text-[5pt] text-red-100 uppercase font-black tracking-widest whitespace-nowrap">Official Seal</span>
          )}

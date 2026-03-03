@@ -6,8 +6,7 @@ import QuotationForm from './components/QuotationForm';
 import PrintableView from './components/PrintableView';
 import { LogIn, FileText, Settings, LayoutDashboard, PlusCircle, LogOut, Trash2, Plus, Copy, ChevronDown, ChevronUp, Loader2, Link, Users, UserPlus, CheckCircle, AlertCircle, Edit, Filter, RefreshCw, Upload, DownloadCloud, ShieldCheck, Search } from 'lucide-react';
 import * as XLSX from 'xlsx';
-
-declare var html2pdf: any;
+import html2pdf from 'html2pdf.js';
 
 const App: React.FC = () => {
   const [state, setState] = useState<AppState>(INITIAL_STATE);
@@ -133,39 +132,39 @@ const App: React.FC = () => {
       const opt = {
         margin: 0,
         filename: fileName,
-        image: { type: 'jpeg', quality: 0.95 },
+        image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { 
           scale: 2,
           useCORS: true, 
-          logging: false,
-          letterRendering: false,
+          logging: true, // Enable logging for debugging
+          letterRendering: true,
           scrollX: 0,
           scrollY: 0,
-          x: 0,
-          y: 0,
-          windowWidth: 794, 
-          backgroundColor: '#ffffff'
+          windowWidth: 1200 // Increased window width for better capture
         },
         jsPDF: { 
           unit: 'mm', 
           format: 'a4', 
           orientation: 'portrait', 
-          compress: true,
-          putOnlyUsedFonts: true,
-          precision: 12
+          compress: true
         },
-        pagebreak: { mode: ['css', 'legacy'] }
+        pagebreak: { mode: ['css', 'legacy'], avoid: '.no-break' }
       };
 
       try {
-        await html2pdf().set(opt).from(element).save();
+        if (typeof html2pdf !== 'function') {
+          throw new Error("html2pdf library is not correctly loaded as a function");
+        }
+        const worker = html2pdf();
+        await worker.set(opt).from(element).save();
       } catch (err) {
         console.error("PDF generation failed:", err);
-        alert("Failed to generate PDF. Please use the Print button instead.");
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        alert(`Failed to generate PDF: ${errorMessage}. This can happen if the content is too large or images fail to load. Please use the Print button instead for a more reliable result.`);
       } finally {
         setDownloadingQuote(null);
       }
-    }, 800);
+    }, 1500);
   };
 
   if (isLoading) {
@@ -320,7 +319,7 @@ const App: React.FC = () => {
       )}
 
       {downloadingQuote && (
-        <div style={{ position: 'fixed', left: '-9999px', top: '0', zIndex: -1 }}>
+        <div style={{ position: 'absolute', left: '0', top: '0', opacity: 0, pointerEvents: 'none', zIndex: -1 }}>
           <div ref={pdfRef} className="pdf-container">
             <PrintableView quotation={downloadingQuote} state={state} />
           </div>
