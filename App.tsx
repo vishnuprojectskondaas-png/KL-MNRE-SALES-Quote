@@ -6,7 +6,9 @@ import QuotationForm from './components/QuotationForm';
 import PrintableView from './components/PrintableView';
 import { LogIn, FileText, Settings, LayoutDashboard, PlusCircle, LogOut, Trash2, Plus, Copy, ChevronDown, ChevronUp, Loader2, Link, Users, UserPlus, CheckCircle, AlertCircle, Edit, Filter, RefreshCw, Upload, DownloadCloud, ShieldCheck, Search } from 'lucide-react';
 import * as XLSX from 'xlsx';
-import html2pdf from 'html2pdf.js';
+import _html2pdf from 'html2pdf.js';
+
+const html2pdf = (_html2pdf as any).default || _html2pdf;
 
 const App: React.FC = () => {
   const [state, setState] = useState<AppState>(INITIAL_STATE);
@@ -132,15 +134,77 @@ const App: React.FC = () => {
       const opt = {
         margin: 0,
         filename: fileName,
-        image: { type: 'jpeg', quality: 0.98 },
+        image: { type: 'jpeg', quality: 1.0 },
         html2canvas: { 
-          scale: 2,
+          scale: 2, // Balanced scale for quality and reliability
           useCORS: true, 
-          logging: true, // Enable logging for debugging
-          letterRendering: true,
+          logging: false,
+          letterRendering: false,
+          imageTimeout: 0,
           scrollX: 0,
           scrollY: 0,
-          windowWidth: 1200 // Increased window width for better capture
+          windowWidth: 794, // Standard A4 width in pixels at 96 DPI
+          onclone: (clonedDoc: Document) => {
+            // Force all elements to use sRGB and disable transitions
+            const style = clonedDoc.createElement('style');
+            style.innerHTML = `
+              * {
+                transition: none !important;
+                animation: none !important;
+                color-interpolation: sRGB !important;
+                -webkit-font-smoothing: antialiased !important;
+                -moz-osx-font-smoothing: grayscale !important;
+                
+                /* Aggressively override Tailwind v4 oklch variables */
+                --tw-shadow: 0 0 #0000 !important;
+                --tw-shadow-colored: 0 0 #0000 !important;
+                --tw-ring-color: rgba(59, 130, 246, 0.5) !important;
+                --tw-ring-shadow: 0 0 #0000 !important;
+                --tw-inset-shadow: 0 0 #0000 !important;
+                --tw-inset-shadow-colored: 0 0 #0000 !important;
+                --tw-inset-ring-shadow: 0 0 #0000 !important;
+                --tw-ring-offset-color: #ffffff !important;
+                --tw-gradient-from: transparent !important;
+                --tw-gradient-to: transparent !important;
+                --tw-gradient-stops: none !important;
+                --tw-border-opacity: 1 !important;
+                --tw-bg-opacity: 1 !important;
+                --tw-text-opacity: 1 !important;
+                --tw-placeholder-opacity: 1 !important;
+                --tw-ring-opacity: 1 !important;
+                --tw-divide-opacity: 1 !important;
+                --tw-outline-color: currentColor !important;
+                --tw-outline-style: none !important;
+              }
+              /* Ensure no oklab/oklch leaks from any remaining Tailwind classes */
+              :root {
+                color-scheme: light;
+                --tw-ring-color: rgba(59, 130, 246, 0.5);
+                --tw-shadow: 0 0 #0000;
+                --tw-shadow-colored: 0 0 #0000;
+              }
+              /* Fix for potential blurry text in some browsers */
+              body {
+                text-rendering: optimizeLegibility !important;
+                font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+              }
+            `;
+            clonedDoc.head.appendChild(style);
+
+            // Nuclear option: Traverse all elements and remove any style containing oklch
+            const allElements = clonedDoc.getElementsByTagName('*');
+            for (let i = 0; i < allElements.length; i++) {
+              const el = allElements[i] as HTMLElement;
+              if (el.style) {
+                // Check inline styles
+                const inlineStyle = el.getAttribute('style') || '';
+                if (inlineStyle.includes('oklch') || inlineStyle.includes('oklab')) {
+                  // Remove problematic parts or just clear it if it's too complex
+                  el.setAttribute('style', inlineStyle.replace(/oklch\([^)]+\)/g, 'currentColor').replace(/oklab\([^)]+\)/g, 'currentColor'));
+                }
+              }
+            }
+          }
         },
         jsPDF: { 
           unit: 'mm', 
@@ -148,15 +212,24 @@ const App: React.FC = () => {
           orientation: 'portrait', 
           compress: true
         },
-        pagebreak: { mode: ['css', 'legacy'], avoid: '.no-break' }
+        pagebreak: { mode: ['css', 'legacy'] }
       };
 
       try {
         if (typeof html2pdf !== 'function') {
-          throw new Error("html2pdf library is not correctly loaded as a function");
+          console.error("html2pdf is not a function:", html2pdf);
+          // Try to find it in window if it was somehow loaded globally
+          const globalHtml2pdf = (window as any).html2pdf;
+          if (typeof globalHtml2pdf === 'function') {
+            await globalHtml2pdf().set(opt).from(element).save();
+            return;
+          }
+          throw new Error("PDF library initialization failed");
         }
-        const worker = html2pdf();
-        await worker.set(opt).from(element).save();
+        
+        console.log("Starting PDF generation for:", fileName);
+        await html2pdf().set(opt).from(element).save();
+        console.log("PDF generation completed successfully");
       } catch (err) {
         console.error("PDF generation failed:", err);
         const errorMessage = err instanceof Error ? err.message : String(err);
@@ -319,7 +392,7 @@ const App: React.FC = () => {
       )}
 
       {downloadingQuote && (
-        <div style={{ position: 'absolute', left: '0', top: '0', opacity: 0, pointerEvents: 'none', zIndex: -1 }}>
+        <div style={{ position: 'fixed', left: '-10000px', top: '0', zIndex: -1, pointerEvents: 'none' }}>
           <div ref={pdfRef} className="pdf-container">
             <PrintableView quotation={downloadingQuote} state={state} />
           </div>

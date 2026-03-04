@@ -186,7 +186,7 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
                 <span className="text-black">{quotation.mobile}</span>
               </div>
             </div>
-            <div className="flex items-start gap-2 border-t border-gray-200/50 pt-1.5">
+            <div className="flex items-start gap-2 border-t border-gray-200-50 pt-1.5">
               <span className="text-black font-black uppercase text-[6.5pt] tracking-widest opacity-40 pt-0.5">ADDRESS:</span>
               <span className="text-black uppercase leading-snug text-[8.5pt]">{quotation.address}</span>
             </div>
@@ -248,7 +248,7 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
             </table>
           </div>
 
-          <div className="rounded-xl overflow-hidden border border-gray-100 shadow-sm bg-gray-50/30">
+          <div className="rounded-xl overflow-hidden border border-gray-100 shadow-sm bg-gray-50-30">
             <table className="table-modern">
               <thead>
                 <tr className="bg-gray-100 text-gray-600">
@@ -326,7 +326,7 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
 
         <div className="mt-auto w-full flex justify-between items-end px-10 mb-2">
           <div className="pb-4">
-            <p className="text-[7pt] font-black text-red-600 uppercase tracking-[0.2em] border border-red-100 px-3 py-1.5 rounded-lg bg-red-50/30">
+            <p className="text-[7pt] font-black text-red-600 uppercase tracking-[0.2em] border border-red-100 px-3 py-1.5 rounded-lg bg-red-50-30">
               Check TERMS AND CONDITIONS PAGE 3
             </p>
           </div>
@@ -354,7 +354,7 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
               </thead>
               <tbody className="text-[9pt]">
                 {(quotation.bom || []).map((item, idx) => (
-                  <tr key={item.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}>
+                  <tr key={item.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50-50'}>
                     <td className="py-1.5 px-2 border-b">{idx + 1}</td>
                     <td className="py-1.5 px-2 border-b font-medium">{item.product}</td>
                     <td className="py-1.5 px-2 border-b">{item.quantity}</td>
