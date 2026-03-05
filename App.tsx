@@ -568,28 +568,39 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
     const reader = new FileReader();
     reader.onload = (evt) => {
       try {
-        const bstr = evt.target?.result;
-        const wb = XLSX.read(bstr, { type: 'binary' });
+        const arrayBuffer = evt.target?.result as ArrayBuffer;
+        const data = new Uint8Array(arrayBuffer);
+        const wb = XLSX.read(data, { type: 'array' });
         const wsname = wb.SheetNames[0];
         const ws = wb.Sheets[wsname];
-        const data = XLSX.utils.sheet_to_json(ws);
+        const excelData = XLSX.utils.sheet_to_json(ws);
 
-        if (data.length === 0) {
-          alert("Excel sheet is empty");
+        if (excelData.length === 0) {
+          alert("Excel sheet is empty or invalid format. Please use the sample template.");
           return;
         }
 
-        const newPricingList: ProductPricing[] = data.map((row: any) => ({
+        const getVal = (row: any, ...keys: string[]) => {
+          for (const key of keys) {
+            if (row[key] !== undefined) return row[key];
+            // Case-insensitive search
+            const foundKey = Object.keys(row).find(k => k.toLowerCase() === key.toLowerCase());
+            if (foundKey) return row[foundKey];
+          }
+          return undefined;
+        };
+
+        const newPricingList: ProductPricing[] = excelData.map((row: any) => ({
           id: Math.random().toString(36).substr(2, 9),
-          name: row['Package Name'] || 'Imported Package',
-          projectType: (row['Project Type'] || 'Ongrid Subsidy') as ProjectType,
-          structureType: (row['Structure Type'] || '2 Meter Flat Roof Structure') as StructureType,
-          panelType: (row['Panel Type'] || 'TOPCON G12R') as PanelType,
-          actualPlantCost: Number(row['Actual Cost'] || 0),
-          discount: Number(row['Discount'] || 0),
-          subsidyAmount: Number(row['Subsidy Amount'] || 0),
-          ksebCharges: Number(row['KSEB Charges'] || 0),
-          netMeterCost: Number(row['Net Meter Cost'] || 0),
+          name: getVal(row, 'Package Name', 'Name') || 'Imported Package',
+          projectType: (getVal(row, 'Project Type') || 'Ongrid Subsidy') as ProjectType,
+          structureType: (getVal(row, 'Structure Type') || '2 Meter Flat Roof Structure') as StructureType,
+          panelType: (getVal(row, 'Panel Type') || 'TOPCON G12R') as PanelType,
+          actualPlantCost: Number(getVal(row, 'Actual Cost', 'Cost') || 0),
+          discount: Number(getVal(row, 'Discount') || 0),
+          subsidyAmount: Number(getVal(row, 'Subsidy Amount', 'Subsidy') || 0),
+          ksebCharges: Number(getVal(row, 'KSEB Charges') || 0),
+          netMeterCost: Number(getVal(row, 'Net Meter Cost') || 0),
           additionalMaterialCost: 0,
           customizedStructureCost: 0
         }));
@@ -603,7 +614,7 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
       }
       if (fileInputRef.current) fileInputRef.current.value = '';
     };
-    reader.readAsBinaryString(file);
+    reader.readAsArrayBuffer(file);
   };
 
   const handleBulkImportProducts = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -613,25 +624,35 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
     const reader = new FileReader();
     reader.onload = (evt) => {
       try {
-        const bstr = evt.target?.result;
-        const wb = XLSX.read(bstr, { type: 'binary' });
+        const arrayBuffer = evt.target?.result as ArrayBuffer;
+        const data = new Uint8Array(arrayBuffer);
+        const wb = XLSX.read(data, { type: 'array' });
         const wsname = wb.SheetNames[0];
         const ws = wb.Sheets[wsname];
-        const data = XLSX.utils.sheet_to_json(ws);
+        const excelData = XLSX.utils.sheet_to_json(ws);
 
-        if (data.length === 0) {
-          alert("Excel sheet is empty");
+        if (excelData.length === 0) {
+          alert("Excel sheet is empty or invalid format. Please use the sample template.");
           return;
         }
 
-        const newProductList: ProductDescription[] = data.map((row: any) => ({
+        const getVal = (row: any, ...keys: string[]) => {
+          for (const key of keys) {
+            if (row[key] !== undefined) return row[key];
+            const foundKey = Object.keys(row).find(k => k.toLowerCase() === key.toLowerCase());
+            if (foundKey) return row[foundKey];
+          }
+          return undefined;
+        };
+
+        const newProductList: ProductDescription[] = excelData.map((row: any) => ({
           id: Math.random().toString(36).substr(2, 9),
-          name: row['Heading/Name'] || 'Imported Product',
-          projectType: (row['Project Type'] || 'Ongrid Subsidy') as ProjectType,
-          structureType: (row['Structure Type'] || '2 Meter Flat Roof Structure') as StructureType,
-          panelType: (row['Panel Type'] || 'TOPCON G12R') as PanelType,
-          defaultPricingId: row['Pricing ID Link'] || '',
-          defaultBomTemplateId: row['BOM Template ID Link'] || ''
+          name: getVal(row, 'Heading/Name', 'Name') || 'Imported Product',
+          projectType: (getVal(row, 'Project Type') || 'Ongrid Subsidy') as ProjectType,
+          structureType: (getVal(row, 'Structure Type') || '2 Meter Flat Roof Structure') as StructureType,
+          panelType: (getVal(row, 'Panel Type') || 'TOPCON G12R') as PanelType,
+          defaultPricingId: getVal(row, 'Pricing ID Link') || '',
+          defaultBomTemplateId: getVal(row, 'BOM Template ID Link') || ''
         }));
 
         if (confirm(`Import ${newProductList.length} product specifications? This will append to existing list.`)) {
@@ -643,7 +664,7 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
       }
       if (productFileInputRef.current) productFileInputRef.current.value = '';
     };
-    reader.readAsBinaryString(file);
+    reader.readAsArrayBuffer(file);
   };
 
   const handleBulkImportTerms = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -653,25 +674,35 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
     const reader = new FileReader();
     reader.onload = (evt) => {
       try {
-        const bstr = evt.target?.result;
-        const wb = XLSX.read(bstr, { type: 'binary' });
+        const arrayBuffer = evt.target?.result as ArrayBuffer;
+        const data = new Uint8Array(arrayBuffer);
+        const wb = XLSX.read(data, { type: 'array' });
         const wsname = wb.SheetNames[0];
         const ws = wb.Sheets[wsname];
-        const data = XLSX.utils.sheet_to_json(ws);
+        const excelData = XLSX.utils.sheet_to_json(ws);
 
-        if (data.length === 0) {
-          alert("Excel sheet is empty");
+        if (excelData.length === 0) {
+          alert("Excel sheet is empty or invalid format. Please use the sample template.");
           return;
         }
 
-        const newTerms: Term[] = data.map((row: any, idx: number) => ({
+        const getVal = (row: any, ...keys: string[]) => {
+          for (const key of keys) {
+            if (row[key] !== undefined) return row[key];
+            const foundKey = Object.keys(row).find(k => k.toLowerCase() === key.toLowerCase());
+            if (foundKey) return row[foundKey];
+          }
+          return undefined;
+        };
+
+        const newTerms: Term[] = excelData.map((row: any, idx: number) => ({
           id: Math.random().toString(36).substr(2, 9),
-          text: row['Term Text'] || 'New Term',
-          enabled: row['Enabled']?.toString().toLowerCase() === 'false' ? false : true,
-          order: state.terms.length + idx + 1,
-          projectType: (row['Project Type'] || 'Ongrid Subsidy') as ProjectType,
-          structureType: (row['Structure Type'] || '2 Meter Flat Roof Structure') as StructureType,
-          panelType: (row['Panel Type'] || 'TOPCON G12R') as PanelType
+          text: getVal(row, 'Term Text', 'Text') || 'New Term',
+          enabled: getVal(row, 'Enabled')?.toString().toLowerCase() === 'false' ? false : true,
+          order: (state.terms?.length || 0) + idx + 1,
+          projectType: (getVal(row, 'Project Type') || 'Ongrid Subsidy') as ProjectType,
+          structureType: (getVal(row, 'Structure Type') || '2 Meter Flat Roof Structure') as StructureType,
+          panelType: (getVal(row, 'Panel Type') || 'TOPCON G12R') as PanelType
         }));
 
         if (confirm(`Import ${newTerms.length} terms? This will append to existing list.`)) {
@@ -683,7 +714,7 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
       }
       if (termsFileInputRef.current) termsFileInputRef.current.value = '';
     };
-    reader.readAsBinaryString(file);
+    reader.readAsArrayBuffer(file);
   };
 
   const handleBulkImportBOM = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -693,31 +724,41 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
     const reader = new FileReader();
     reader.onload = (evt) => {
       try {
-        const bstr = evt.target?.result;
-        const wb = XLSX.read(bstr, { type: 'binary' });
+        const arrayBuffer = evt.target?.result as ArrayBuffer;
+        const data = new Uint8Array(arrayBuffer);
+        const wb = XLSX.read(data, { type: 'array' });
         const wsname = wb.SheetNames[0];
         const ws = wb.Sheets[wsname];
-        const data = XLSX.utils.sheet_to_json(ws);
+        const excelData = XLSX.utils.sheet_to_json(ws);
 
-        if (data.length === 0) {
-          alert("Excel sheet is empty");
+        if (excelData.length === 0) {
+          alert("Excel sheet is empty or invalid format. Please use the sample template.");
           return;
         }
 
+        const getVal = (row: any, ...keys: string[]) => {
+          for (const key of keys) {
+            if (row[key] !== undefined) return row[key];
+            const foundKey = Object.keys(row).find(k => k.toLowerCase() === key.toLowerCase());
+            if (foundKey) return row[foundKey];
+          }
+          return undefined;
+        };
+
         // Group rows by Template Name
         const templatesMap: Record<string, BOMItem[]> = {};
-        data.forEach((row: any) => {
-          const templateName = row['Template Name'] || 'Imported BOM Template';
+        excelData.forEach((row: any) => {
+          const templateName = getVal(row, 'Template Name') || 'Imported BOM Template';
           if (!templatesMap[templateName]) {
             templatesMap[templateName] = [];
           }
           templatesMap[templateName].push({
             id: Math.random().toString(36).substr(2, 9),
-            product: row['Product Component'] || '',
-            uom: row['UOM'] || '',
-            quantity: row['Qty']?.toString() || '',
-            specification: row['Specification'] || '',
-            make: row['Make / Brand'] || ''
+            product: getVal(row, 'Product Component', 'Product') || '',
+            uom: getVal(row, 'UOM') || '',
+            quantity: getVal(row, 'Qty', 'Quantity')?.toString() || '',
+            specification: getVal(row, 'Specification', 'Spec') || '',
+            make: getVal(row, 'Make / Brand', 'Make') || ''
           });
         });
 
@@ -727,7 +768,7 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
           items: items
         }));
 
-        if (confirm(`Import ${newTemplates.length} BOM templates with total ${data.length} components? This will append to existing list.`)) {
+        if (confirm(`Import ${newTemplates.length} BOM templates with total ${excelData.length} components? This will append to existing list.`)) {
           updateSub('bomTemplates', [...(state.bomTemplates || []), ...newTemplates]);
         }
       } catch (error) {
@@ -736,7 +777,7 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
       }
       if (bomFileInputRef.current) bomFileInputRef.current.value = '';
     };
-    reader.readAsBinaryString(file);
+    reader.readAsArrayBuffer(file);
   };
 
   const handleBulkImportWarranties = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -746,27 +787,37 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
     const reader = new FileReader();
     reader.onload = (evt) => {
       try {
-        const bstr = evt.target?.result;
-        const wb = XLSX.read(bstr, { type: 'binary' });
+        const arrayBuffer = evt.target?.result as ArrayBuffer;
+        const data = new Uint8Array(arrayBuffer);
+        const wb = XLSX.read(data, { type: 'array' });
         const wsname = wb.SheetNames[0];
         const ws = wb.Sheets[wsname];
-        const data = XLSX.utils.sheet_to_json(ws);
+        const excelData = XLSX.utils.sheet_to_json(ws);
 
-        if (data.length === 0) {
-          alert("Excel sheet is empty");
+        if (excelData.length === 0) {
+          alert("Excel sheet is empty or invalid format. Please use the sample template.");
           return;
         }
 
-        const newWarranties: WarrantyPackage[] = data.map((row: any) => ({
+        const getVal = (row: any, ...keys: string[]) => {
+          for (const key of keys) {
+            if (row[key] !== undefined) return row[key];
+            const foundKey = Object.keys(row).find(k => k.toLowerCase() === key.toLowerCase());
+            if (foundKey) return row[foundKey];
+          }
+          return undefined;
+        };
+
+        const newWarranties: WarrantyPackage[] = excelData.map((row: any) => ({
           id: Math.random().toString(36).substr(2, 9),
-          projectType: (row['Project Type'] || 'Ongrid Subsidy') as ProjectType,
-          structureType: (row['Structure Type'] || '2 Meter Flat Roof Structure') as StructureType,
-          panelType: (row['Panel Type'] || 'TOPCON G12R') as PanelType,
-          panelWarranty: row['Panel Warranty'] || '',
-          inverterWarranty: row['Inverter Warranty'] || '',
-          batteryWarranty: row['Battery Warranty'] || '',
-          systemWarranty: row['System Warranty'] || '',
-          monitoringSystem: row['Monitoring System'] || ''
+          projectType: (getVal(row, 'Project Type') || 'Ongrid Subsidy') as ProjectType,
+          structureType: (getVal(row, 'Structure Type') || '2 Meter Flat Roof Structure') as StructureType,
+          panelType: (getVal(row, 'Panel Type') || 'TOPCON G12R') as PanelType,
+          panelWarranty: getVal(row, 'Panel Warranty') || '',
+          inverterWarranty: getVal(row, 'Inverter Warranty') || '',
+          batteryWarranty: getVal(row, 'Battery Warranty') || '',
+          systemWarranty: getVal(row, 'System Warranty') || '',
+          monitoringSystem: getVal(row, 'Monitoring System') || ''
         }));
 
         if (confirm(`Import ${newWarranties.length} warranty declarations? This will append to existing list.`)) {
@@ -778,7 +829,7 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
       }
       if (warrantyFileInputRef.current) warrantyFileInputRef.current.value = '';
     };
-    reader.readAsBinaryString(file);
+    reader.readAsArrayBuffer(file);
   };
 
   const downloadSampleExcel = () => {
@@ -1172,16 +1223,16 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
                   </div>
                   {editingItemId === p.id && (
                     <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4">
-                      <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Project Type</label><select className="w-full border p-2 rounded text-xs font-bold bg-white" value={p.projectType} onChange={e => updatePricingItem(p.id, { projectType: e.target.value as ProjectType })}>{PROJECT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
-                      <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Structure Type</label><select className="w-full border p-2 rounded text-xs font-bold bg-white" value={p.structureType} onChange={e => updatePricingItem(p.id, { structureType: e.target.value as StructureType })}>{STRUCTURE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
-                      <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Panel Type</label><select className="w-full border p-2 rounded text-xs font-bold bg-white" value={p.panelType} onChange={e => updatePricingItem(p.id, { panelType: e.target.value as PanelType })}>{PANEL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
-                      <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Actual Plant Cost (₹)</label><input type="number" value={p.actualPlantCost} onChange={e => updatePricingItem(p.id, { actualPlantCost: Number(e.target.value) })} className="w-full border p-2 rounded font-black text-gray-900 bg-white" /></div>
-                      <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Discount Amount (₹)</label><input type="number" value={p.discount} onChange={e => updatePricingItem(p.id, { discount: Number(e.target.value) })} className="w-full border p-2 rounded text-green-600 font-bold bg-white" /></div>
+                      <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Project Type</label><select className="w-full border p-2 rounded text-xs font-bold bg-white" value={p.projectType || 'Ongrid Subsidy'} onChange={e => updatePricingItem(p.id, { projectType: e.target.value as ProjectType })}>{PROJECT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+                      <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Structure Type</label><select className="w-full border p-2 rounded text-xs font-bold bg-white" value={p.structureType || '2 Meter Flat Roof Structure'} onChange={e => updatePricingItem(p.id, { structureType: e.target.value as StructureType })}>{STRUCTURE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+                      <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Panel Type</label><select className="w-full border p-2 rounded text-xs font-bold bg-white" value={p.panelType || 'TOPCON G12R'} onChange={e => updatePricingItem(p.id, { panelType: e.target.value as PanelType })}>{PANEL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+                      <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Actual Plant Cost (₹)</label><input type="number" value={p.actualPlantCost ?? ''} onChange={e => updatePricingItem(p.id, { actualPlantCost: Number(e.target.value) })} className="w-full border p-2 rounded font-black text-gray-900 bg-white" /></div>
+                      <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Discount Amount (₹)</label><input type="number" value={p.discount ?? ''} onChange={e => updatePricingItem(p.id, { discount: Number(e.target.value) })} className="w-full border p-2 rounded text-green-600 font-bold bg-white" /></div>
                       {!p.projectType.toLowerCase().includes('non subsidy') && (
-                        <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Subsidy Amount (₹)</label><input type="number" value={p.subsidyAmount} onChange={e => updatePricingItem(p.id, { subsidyAmount: Number(e.target.value) })} className="w-full border p-2 rounded text-red-600 font-bold bg-white" /></div>
+                        <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Subsidy Amount (₹)</label><input type="number" value={p.subsidyAmount ?? ''} onChange={e => updatePricingItem(p.id, { subsidyAmount: Number(e.target.value) })} className="w-full border p-2 rounded text-red-600 font-bold bg-white" /></div>
                       )}
-                      <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">KSEB Charges (₹)</label><input type="number" value={p.ksebCharges} onChange={e => updatePricingItem(p.id, { ksebCharges: Number(e.target.value) })} className="w-full border p-2 rounded bg-white" /></div>
-                      <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Net Meter Cost (₹)</label><input type="number" value={p.netMeterCost || 0} onChange={e => updatePricingItem(p.id, { netMeterCost: Number(e.target.value) })} className="w-full border p-3 rounded bg-white" /></div>
+                      <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">KSEB Charges (₹)</label><input type="number" value={p.ksebCharges ?? ''} onChange={e => updatePricingItem(p.id, { ksebCharges: Number(e.target.value) })} className="w-full border p-2 rounded bg-white" /></div>
+                      <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Net Meter Cost (₹)</label><input type="number" value={p.netMeterCost ?? ''} onChange={e => updatePricingItem(p.id, { netMeterCost: Number(e.target.value) })} className="w-full border p-3 rounded bg-white" /></div>
                     </div>
                   )}
                 </div>
@@ -1330,9 +1381,9 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
                     </div>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
-                    <select className="text-[9px] font-bold border rounded p-1.5 bg-white" value={term.projectType} onChange={e => updateSub('terms', termsList.map(t => t.id === term.id ? { ...t, projectType: e.target.value as ProjectType } : t))}>{PROJECT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select>
-                    <select className="text-[9px] font-bold border rounded p-1.5 bg-white" value={term.structureType} onChange={e => updateSub('terms', termsList.map(t => t.id === term.id ? { ...t, structureType: e.target.value as StructureType } : t))}>{STRUCTURE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select>
-                    <select className="text-[9px] font-bold border rounded p-1.5 bg-white" value={term.panelType} onChange={e => updateSub('terms', termsList.map(t => t.id === term.id ? { ...t, panelType: e.target.value as PanelType } : t))}>{PANEL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select>
+                    <select className="text-[9px] font-bold border rounded p-1.5 bg-white" value={term.projectType || 'Ongrid Subsidy'} onChange={e => updateSub('terms', termsList.map(t => t.id === term.id ? { ...t, projectType: e.target.value as ProjectType } : t))}>{PROJECT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select>
+                    <select className="text-[9px] font-bold border rounded p-1.5 bg-white" value={term.structureType || '2 Meter Flat Roof Structure'} onChange={e => updateSub('terms', termsList.map(t => t.id === term.id ? { ...t, structureType: e.target.value as StructureType } : t))}>{STRUCTURE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select>
+                    <select className="text-[9px] font-bold border rounded p-1.5 bg-white" value={term.panelType || 'TOPCON G12R'} onChange={e => updateSub('terms', termsList.map(t => t.id === term.id ? { ...t, panelType: e.target.value as PanelType } : t))}>{PANEL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select>
                   </div>
                 </div>
               ))}
@@ -1401,17 +1452,17 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
                   {editingItemId === w.id && (
                     <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
                       <div className="md:col-span-2 border-b pb-4 mb-2 grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Project Type</label><select className="w-full border p-2 rounded text-xs font-bold bg-white" value={w.projectType} onChange={e => updateWarrantyPackage(w.id, { projectType: e.target.value as ProjectType })}>{PROJECT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
-                        <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Structure Type</label><select className="w-full border p-2 rounded text-xs font-bold bg-white" value={w.structureType} onChange={e => updateWarrantyPackage(w.id, { structureType: e.target.value as StructureType })}>{STRUCTURE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
-                        <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Panel Type</label><select className="w-full border p-2 rounded text-xs font-bold bg-white" value={w.panelType} onChange={e => updateWarrantyPackage(w.id, { panelType: e.target.value as PanelType })}>{PANEL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+                        <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Project Type</label><select className="w-full border p-2 rounded text-xs font-bold bg-white" value={w.projectType || 'Ongrid Subsidy'} onChange={e => updateWarrantyPackage(w.id, { projectType: e.target.value as ProjectType })}>{PROJECT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+                        <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Structure Type</label><select className="w-full border p-2 rounded text-xs font-bold bg-white" value={w.structureType || '2 Meter Flat Roof Structure'} onChange={e => updateWarrantyPackage(w.id, { structureType: e.target.value as StructureType })}>{STRUCTURE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+                        <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Panel Type</label><select className="w-full border p-2 rounded text-xs font-bold bg-white" value={w.panelType || 'TOPCON G12R'} onChange={e => updateWarrantyPackage(w.id, { panelType: e.target.value as PanelType })}>{PANEL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
                       </div>
-                      <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Solar Panel Warranty</label><input value={w.panelWarranty} onChange={e => updateWarrantyPackage(w.id, { panelWarranty: e.target.value })} className="w-full border p-3 rounded-lg bg-white font-medium" /></div>
-                      <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Inverter Warranty</label><input value={w.inverterWarranty} onChange={e => updateWarrantyPackage(w.id, { inverterWarranty: e.target.value })} className="w-full border p-3 rounded-lg bg-white font-medium" /></div>
+                      <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Solar Panel Warranty</label><input value={w.panelWarranty || ''} onChange={e => updateWarrantyPackage(w.id, { panelWarranty: e.target.value })} className="w-full border p-3 rounded-lg bg-white font-medium" /></div>
+                      <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Inverter Warranty</label><input value={w.inverterWarranty || ''} onChange={e => updateWarrantyPackage(w.id, { inverterWarranty: e.target.value })} className="w-full border p-3 rounded-lg bg-white font-medium" /></div>
                       {isHybrid && (
                         <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Battery Warranty</label><input value={w.batteryWarranty || ''} onChange={e => updateWarrantyPackage(w.id, { batteryWarranty: e.target.value })} className="w-full border p-3 rounded-lg bg-white font-medium" /></div>
                       )}
-                      <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">System Warranty Statement</label><input value={w.systemWarranty} onChange={e => updateWarrantyPackage(w.id, { systemWarranty: e.target.value })} className="w-full border p-3 rounded-lg bg-white font-medium" /></div>
-                      <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Monitoring System Status</label><input value={w.monitoringSystem} onChange={e => updateWarrantyPackage(w.id, { monitoringSystem: e.target.value })} className="w-full border p-3 rounded-lg bg-white font-medium" /></div>
+                      <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">System Warranty Statement</label><input value={w.systemWarranty || ''} onChange={e => updateWarrantyPackage(w.id, { systemWarranty: e.target.value })} className="w-full border p-3 rounded-lg bg-white font-medium" /></div>
+                      <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Monitoring System Status</label><input value={w.monitoringSystem || ''} onChange={e => updateWarrantyPackage(w.id, { monitoringSystem: e.target.value })} className="w-full border p-3 rounded-lg bg-white font-medium" /></div>
                     </div>
                   )}
                 </div>

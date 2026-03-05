@@ -228,23 +228,23 @@ const QuotationForm: React.FC<Props> = ({ state, currentUser, editData, onSave, 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div className="md:col-span-2">
               <label className="block text-sm text-gray-600 mb-1 font-bold">Customer Name</label>
-              <input required value={formData.customerName} onChange={e => setFormData({ ...formData, customerName: e.target.value })} className="w-full border p-2 rounded focus:ring-2 focus:ring-red-500 outline-none" />
+              <input required value={formData.customerName || ''} onChange={e => setFormData({ ...formData, customerName: e.target.value })} className="w-full border p-2 rounded focus:ring-2 focus:ring-red-500 outline-none" />
             </div>
             <div>
               <label className="block text-sm text-gray-600 mb-1 font-bold">Consumer DISCOM No.</label>
-              <input value={formData.discomNumber} onChange={e => setFormData({ ...formData, discomNumber: e.target.value })} className="w-full border p-2 rounded focus:ring-2 focus:ring-red-500 outline-none" />
+              <input value={formData.discomNumber || ''} onChange={e => setFormData({ ...formData, discomNumber: e.target.value })} className="w-full border p-2 rounded focus:ring-2 focus:ring-red-500 outline-none" />
             </div>
             <div className="md:col-span-2 lg:col-span-3">
               <label className="block text-sm text-gray-600 mb-1 font-bold">Address</label>
-              <textarea required rows={2} value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })} className="w-full border p-2 rounded focus:ring-2 focus:ring-red-500 outline-none" />
+              <textarea required rows={2} value={formData.address || ''} onChange={e => setFormData({ ...formData, address: e.target.value })} className="w-full border p-2 rounded focus:ring-2 focus:ring-red-500 outline-none" />
             </div>
             <div>
               <label className="block text-sm text-gray-600 mb-1 font-bold">Mobile Number</label>
-              <input required value={formData.mobile} onChange={e => setFormData({ ...formData, mobile: e.target.value })} className="w-full border p-2 rounded focus:ring-2 focus:ring-red-500 outline-none" />
+              <input required value={formData.mobile || ''} onChange={e => setFormData({ ...formData, mobile: e.target.value })} className="w-full border p-2 rounded focus:ring-2 focus:ring-red-500 outline-none" />
             </div>
             <div>
               <label className="block text-sm text-gray-600 mb-1 font-bold">Email</label>
-              <input type="email" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} className="w-full border p-2 rounded focus:ring-2 focus:ring-red-500 outline-none" />
+              <input type="email" value={formData.email || ''} onChange={e => setFormData({ ...formData, email: e.target.value })} className="w-full border p-2 rounded focus:ring-2 focus:ring-red-500 outline-none" />
             </div>
           </div>
         </section>
@@ -258,11 +258,11 @@ const QuotationForm: React.FC<Props> = ({ state, currentUser, editData, onSave, 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div>
               <label className="block text-xs uppercase font-black text-gray-400 mb-1">ACTUAL PLANT COST (₹)</label>
-              <input type="number" readOnly={!canEditBasePricing} value={pActual} onChange={e => setFormData({ ...formData, pricing: { ...formData.pricing, actualPlantCost: Number(e.target.value) } })} className={`w-full border p-2 rounded shadow-inner font-bold ${!canEditBasePricing ? 'bg-gray-200 text-gray-600' : 'bg-white'}`} />
+              <input type="number" readOnly={!canEditBasePricing} value={pActual ?? ''} onChange={e => setFormData({ ...formData, pricing: { ...formData.pricing, actualPlantCost: Number(e.target.value) } })} className={`w-full border p-2 rounded shadow-inner font-bold ${!canEditBasePricing ? 'bg-gray-200 text-gray-600' : 'bg-white'}`} />
             </div>
             <div>
               <label className="block text-xs uppercase font-black text-gray-400 mb-1">DISCOUNT (₹)</label>
-              <input type="number" readOnly={!canEditBasePricing} value={pDiscount} onChange={e => setFormData({ ...formData, pricing: { ...formData.pricing, discount: Number(e.target.value) } })} className={`w-full border p-2 rounded shadow-inner font-bold text-green-600 ${!canEditBasePricing ? 'bg-gray-200' : 'bg-white'}`} />
+              <input type="number" readOnly={!canEditBasePricing} value={pDiscount ?? ''} onChange={e => setFormData({ ...formData, pricing: { ...formData.pricing, discount: Number(e.target.value) } })} className={`w-full border p-2 rounded shadow-inner font-bold text-green-600 ${!canEditBasePricing ? 'bg-gray-200' : 'bg-white'}`} />
             </div>
             <div>
               <label className="block text-xs uppercase font-black text-gray-400 mb-1">Amount To Be Paid by The Customer to Kondaas After Limited Period Discount</label>
@@ -272,7 +272,7 @@ const QuotationForm: React.FC<Props> = ({ state, currentUser, editData, onSave, 
             {!isNonSubsidy && (
               <div>
                 <label className="block text-xs uppercase font-black text-gray-400 mb-1">Subsidy Amount (₹)</label>
-                <input type="number" readOnly={!canEditBasePricing} value={pSubsidy} onChange={e => setFormData({ ...formData, pricing: { ...formData.pricing, subsidyAmount: Number(e.target.value) } })} className={`w-full border p-2 rounded shadow-inner font-bold text-red-600 ${!canEditBasePricing ? 'bg-gray-200' : 'bg-white'}`} />
+                <input type="number" readOnly={!canEditBasePricing} value={pSubsidy ?? ''} onChange={e => setFormData({ ...formData, pricing: { ...formData.pricing, subsidyAmount: Number(e.target.value) } })} className={`w-full border p-2 rounded shadow-inner font-bold text-red-600 ${!canEditBasePricing ? 'bg-gray-200' : 'bg-white'}`} />
               </div>
             )}
 
@@ -282,14 +282,14 @@ const QuotationForm: React.FC<Props> = ({ state, currentUser, editData, onSave, 
             </div>
             <div>
               <label className="block text-xs uppercase font-black text-gray-400 mb-1">KSEB Charges (₹)</label>
-              <input type="number" value={pKseb} onChange={e => setFormData({ ...formData, pricing: { ...formData.pricing, ksebCharges: Number(e.target.value) } })} className="w-full border p-2 rounded shadow-inner bg-white font-bold" />
+              <input type="number" value={pKseb ?? ''} onChange={e => setFormData({ ...formData, pricing: { ...formData.pricing, ksebCharges: Number(e.target.value) } })} className="w-full border p-2 rounded shadow-inner bg-white font-bold" />
             </div>
             {formData.structureType === 'Without Structure' && (
               <div>
                 <label className="block text-xs uppercase font-black text-red-600 mb-1">Customized Structure Cost (₹)</label>
                 <input 
                   type="number" 
-                  value={pCustStruct} 
+                  value={pCustStruct ?? ''} 
                   onChange={e => setFormData({ ...formData, pricing: { ...formData.pricing, customizedStructureCost: Number(e.target.value) } })} 
                   className="w-full border-2 border-red-100 p-2 rounded shadow-inner bg-white font-bold focus:border-red-500 outline-none" 
                   placeholder="Enter structure cost"
@@ -306,7 +306,7 @@ const QuotationForm: React.FC<Props> = ({ state, currentUser, editData, onSave, 
               <label className="block text-xs uppercase font-black text-red-600 mb-1">Additional Material Cost (₹)</label>
               <input 
                 type="number" 
-                value={pAddMat} 
+                value={pAddMat ?? ''} 
                 onChange={e => setFormData({ ...formData, pricing: { ...formData.pricing, additionalMaterialCost: Number(e.target.value) } })} 
                 className="w-full border-2 border-red-100 p-2 rounded shadow-inner bg-white font-bold focus:border-red-500 outline-none" 
                 placeholder="Enter additional cost"
@@ -316,7 +316,7 @@ const QuotationForm: React.FC<Props> = ({ state, currentUser, editData, onSave, 
               <label className="block text-xs uppercase font-black text-red-600 mb-1">Net Meter Cost (₹)</label>
               <input 
                 type="number" 
-                value={pNetMeter} 
+                value={pNetMeter ?? ''} 
                 onChange={e => setFormData({ ...formData, pricing: { ...formData.pricing, netMeterCost: Number(e.target.value) } })} 
                 className="w-full border-2 border-red-100 p-2 rounded shadow-inner bg-white font-bold focus:border-red-500 outline-none" 
                 placeholder="Enter net meter cost"
@@ -350,11 +350,11 @@ const QuotationForm: React.FC<Props> = ({ state, currentUser, editData, onSave, 
               <tbody className="divide-y divide-gray-200">
                 {formData.bom && formData.bom.length > 0 ? formData.bom.map((item, idx) => (
                   <tr key={item.id}>
-                    <td className="p-2"><input className="w-full text-xs border-0 bg-transparent focus:ring-0 cursor-default text-gray-700 font-bold" value={item.product} readOnly tabIndex={-1} /></td>
-                    <td className="p-2"><input className="w-full text-xs border-0 bg-transparent focus:ring-0 cursor-default text-gray-700" value={item.uom} readOnly tabIndex={-1} /></td>
-                    <td className="p-2"><input className="w-full text-xs border-0 bg-transparent focus:ring-0 cursor-default text-gray-700" value={item.quantity} readOnly tabIndex={-1} /></td>
-                    <td className="p-2"><input className="w-full text-xs border-0 bg-transparent focus:ring-0 cursor-default text-gray-700" value={item.specification} readOnly tabIndex={-1} /></td>
-                    <td className="p-2"><input className="w-full text-xs border-0 bg-transparent focus:ring-0 cursor-default text-gray-700 font-bold uppercase" value={item.make} readOnly tabIndex={-1} /></td>
+                    <td className="p-2"><input className="w-full text-xs border-0 bg-transparent focus:ring-0 cursor-default text-gray-700 font-bold" value={item.product || ''} readOnly tabIndex={-1} /></td>
+                    <td className="p-2"><input className="w-full text-xs border-0 bg-transparent focus:ring-0 cursor-default text-gray-700" value={item.uom || ''} readOnly tabIndex={-1} /></td>
+                    <td className="p-2"><input className="w-full text-xs border-0 bg-transparent focus:ring-0 cursor-default text-gray-700" value={item.quantity ?? ''} readOnly tabIndex={-1} /></td>
+                    <td className="p-2"><input className="w-full text-xs border-0 bg-transparent focus:ring-0 cursor-default text-gray-700" value={item.specification || ''} readOnly tabIndex={-1} /></td>
+                    <td className="p-2"><input className="w-full text-xs border-0 bg-transparent focus:ring-0 cursor-default text-gray-700 font-bold uppercase" value={item.make || ''} readOnly tabIndex={-1} /></td>
                   </tr>
                 )) : (
                   <tr><td colSpan={5} className="p-8 text-center text-gray-400 text-xs uppercase font-bold tracking-widest">Select a product model to view BOM</td></tr>
