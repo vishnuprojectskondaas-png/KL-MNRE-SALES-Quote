@@ -46,16 +46,16 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
   );
 
   const CompanySealBlock = ({ imageBottomClass = "bottom-6" }: { imageBottomClass?: string }) => (
-    <div className="text-center w-52">
-      <div className="h-16 border-b border-gray-100 mb-1 relative">
+    <div className="text-center w-72">
+      <div className="h-14 border-b border-gray-100 mb-1 relative">
          {state.company.seal ? (
-           <img src={state.company.seal} alt="Seal" crossOrigin="anonymous" referrerPolicy="no-referrer" className={`absolute ${imageBottomClass} left-1/2 -translate-x-1/2 h-16 w-auto object-contain z-10`} />
+           <img src={state.company.seal} alt="Seal" crossOrigin="anonymous" referrerPolicy="no-referrer" className={`absolute ${imageBottomClass} left-1/2 -translate-x-1/2 h-14 w-auto object-contain z-10`} />
          ) : (
            <span className="absolute bottom-1 left-1/2 -translate-x-1/2 text-[5pt] text-red-100 uppercase font-black tracking-widest whitespace-nowrap">Official Seal</span>
          )}
       </div>
-      <p className="text-[5.5pt] font-black uppercase text-red-600 tracking-[0.1em] pt-1 border-t border-red-600 truncate">For {state.company.name}</p>
-      <p className="text-[5pt] text-gray-400 font-black uppercase mt-0.5 tracking-[0.2em]">Authorized Signatory</p>
+      <p className="text-[5.2pt] font-black uppercase text-red-600 tracking-tight pt-1 border-t border-red-600 whitespace-nowrap overflow-visible">For {state.company.name}</p>
+      <p className="text-[5pt] text-gray-400 font-black uppercase mt-0.5 tracking-[0.2em] whitespace-nowrap">Authorized Signatory</p>
     </div>
   );
 
@@ -104,10 +104,10 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
     return (
       <div className="w-full">
         <SectionHeader title="Quality Assurance" />
-        <div className={`grid ${isHybrid ? 'grid-cols-5' : 'grid-cols-4'} gap-3`}>
+        <div className={`grid ${isHybrid ? 'grid-cols-5' : 'grid-cols-4'} gap-2`}>
           {qaItems.map((w, i) => (
-            <div key={i} className="bg-gray-50 border border-gray-100 p-3 rounded-xl flex flex-col items-center text-center shadow-sm hover:border-red-100 transition-colors">
-              <p className="text-[6pt] font-black text-red-600 uppercase tracking-widest mb-1">{w.l}</p>
+            <div key={i} className="bg-gray-50 border border-gray-100 p-2 rounded-xl flex flex-col items-center text-center shadow-sm hover:border-red-100 transition-colors">
+              <p className="text-[6pt] font-black text-red-600 uppercase tracking-widest mb-0.5">{w.l}</p>
               <p className="text-[7pt] font-black text-gray-800 leading-tight">{w.v}</p>
             </div>
           ))}
@@ -124,10 +124,10 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
         
         {/* Quotation No & Date at absolute position in the top margin area */}
         {!isPendingSurvey && (
-          <div className="absolute top-4 right-16 text-right z-30">
-            <span className="text-[4.5pt] font-black text-white bg-black px-1.5 py-0.5 rounded uppercase tracking-[0.1em] shadow-sm">Quotation No & Date</span>
-            <p className="text-[9pt] font-black mt-0.5 text-red-600 tracking-tight leading-none">{quotation.id}</p>
-            <p className="text-[5.5pt] text-gray-400 font-bold uppercase mt-0.5 tracking-wider">{format(new Date(quotation.date), 'dd MMMM yyyy')}</p>
+          <div className="absolute top-4 right-16 text-right z-30 bg-black p-2 rounded-md shadow-sm min-w-[100pt]">
+            <span className="text-[5pt] font-black text-gray-400 uppercase tracking-[0.1em] block mb-0.5">Quotation No & Date</span>
+            <p className="text-[10pt] font-black text-white tracking-tight leading-none">{quotation.id}</p>
+            <p className="text-[6pt] text-gray-300 font-bold uppercase mt-1 tracking-wider">{format(new Date(quotation.date), 'dd MMMM yyyy')}</p>
           </div>
         )}
 
@@ -324,13 +324,12 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
           </div>
         </div>
 
-        <div className="mt-auto w-full flex justify-between items-end px-10 mb-2">
+        <div className="mt-auto w-full flex justify-center px-10 mb-2">
           <div className="pb-4">
             <p className="text-[7pt] font-black text-red-600 uppercase tracking-[0.2em] border border-red-100 px-3 py-1.5 rounded-lg bg-red-50-30">
               Check TERMS AND CONDITIONS PAGE 3
             </p>
           </div>
-          <CompanySealBlock imageBottomClass="bottom-4" />
         </div>
         <PageFooter pageNum={1} noMarginTop />
       </div>
@@ -338,29 +337,29 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
       {/* PAGE 2: BOM & Quality Assurance */}
       <div className="a4-page relative">
         <PageLogo />
-        <div className="pt-6">
+        <div className="pt-4">
           <SectionHeader title="Technical Specifications (BOM)" />
-          <div className="rounded-xl overflow-hidden border border-gray-100 w-full shadow-sm mb-6">
+          <div className="rounded-xl overflow-hidden w-full mb-4">
             <table className="w-full border-collapse table-fixed">
               <thead>
                 <tr className="bg-black text-white">
-                  <th className="w-[5%] text-left py-1.5 px-2 text-[9pt] font-bold uppercase tracking-wider">#</th>
-                  <th className="w-[20%] text-left py-1.5 px-2 text-[9pt] font-bold uppercase tracking-wider">Products</th>
-                  <th className="w-[10%] text-left py-1.5 px-2 text-[9pt] font-bold uppercase tracking-wider">Qty</th>
-                  <th className="w-[10%] text-left py-1.5 px-2 text-[9pt] font-bold uppercase tracking-wider">UOM</th>
-                  <th className="w-[27.5%] text-left py-1.5 px-2 text-[9pt] font-bold uppercase tracking-wider">Spec/Type</th>
-                  <th className="w-[27.5%] text-left py-1.5 px-2 text-[9pt] font-bold uppercase tracking-wider">Make</th>
+                  <th className="w-[5%] text-left py-1 px-2 text-[8pt] font-bold uppercase tracking-wider">#</th>
+                  <th className="w-[20%] text-left py-1 px-2 text-[8pt] font-bold uppercase tracking-wider">Products</th>
+                  <th className="w-[10%] text-left py-1 px-2 text-[8pt] font-bold uppercase tracking-wider">Qty</th>
+                  <th className="w-[10%] text-left py-1 px-2 text-[8pt] font-bold uppercase tracking-wider">UOM</th>
+                  <th className="w-[27.5%] text-left py-1 px-2 text-[8pt] font-bold uppercase tracking-wider">Spec/Type</th>
+                  <th className="w-[27.5%] text-left py-1 px-2 text-[8pt] font-bold uppercase tracking-wider">Make</th>
                 </tr>
               </thead>
-              <tbody className="text-[9pt]">
+              <tbody className="text-[8pt]">
                 {(quotation.bom || []).map((item, idx) => (
                   <tr key={item.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50-50'}>
-                    <td className="py-1.5 px-2 border-b">{idx + 1}</td>
-                    <td className="py-1.5 px-2 border-b font-medium">{item.product}</td>
-                    <td className="py-1.5 px-2 border-b">{item.quantity}</td>
-                    <td className="py-1.5 px-2 border-b">{item.uom}</td>
-                    <td className="py-1.5 px-2 border-b text-gray-600">{item.specification}</td>
-                    <td className="py-1.5 px-2 border-b font-medium uppercase">{item.make}</td>
+                    <td className="py-1 px-2">{idx + 1}</td>
+                    <td className="py-1 px-2 font-medium">{item.product}</td>
+                    <td className="py-1 px-2">{item.quantity}</td>
+                    <td className="py-1 px-2">{item.uom}</td>
+                    <td className="py-1 px-2 text-gray-600 leading-tight">{item.specification}</td>
+                    <td className="py-1 px-2 font-medium uppercase">{item.make}</td>
                   </tr>
                 ))}
               </tbody>
@@ -369,8 +368,8 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
 
           <QualityAssuranceSection />
         </div>
-        <div className="mt-auto flex justify-end px-10 mb-2">
-          <CompanySealBlock imageBottomClass="bottom-4" />
+        <div className="mt-auto flex justify-end px-10 mb-6">
+          <CompanySealBlock imageBottomClass="bottom-2" />
         </div>
         <PageFooter pageNum={2} />
       </div>
@@ -389,8 +388,8 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
             ))}
           </div>
         </div>
-        <div className="mt-auto flex justify-end px-10 mb-2">
-          <CompanySealBlock imageBottomClass="bottom-4" />
+        <div className="mt-auto flex justify-end px-10 mb-6">
+          <CompanySealBlock imageBottomClass="bottom-2" />
         </div>
         <PageFooter pageNum={3} />
       </div>
@@ -402,42 +401,54 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
           <SectionHeader title="Execution & Compliance" />
           <div className="grid grid-cols-5 gap-6 mb-8 w-full">
             <div className="modern-card border-t-4 border-red-600 shadow-sm flex flex-col col-span-3">
-              <h4 className="text-[7pt] font-black uppercase tracking-[0.25em] mb-4 text-red-600 text-center border-b border-red-50 pb-2">Company Bank Account Details</h4>
-              <div className="space-y-2 text-[10pt] font-bold">
-                <div className="flex justify-between border-b pb-1">
-                  <span className="text-gray-400 uppercase text-[7.5pt] font-black tracking-widest">Account Holder</span>
-                  <span className="text-black text-right truncate">{state.bank.companyName}</span>
+              <h4 className="text-[7.5pt] font-black uppercase tracking-[0.25em] mb-5 text-red-600 text-center border-b border-red-100 pb-3">Company Bank Account Details</h4>
+              <div className="space-y-3 text-[10pt] font-bold">
+                <div className="border-b border-gray-100 pb-2">
+                  <div className="flex justify-between items-start gap-4">
+                    <span className="text-gray-400 uppercase text-[7pt] font-black tracking-widest flex-shrink-0 pt-1">Account Holder</span>
+                    <span className="text-black text-right text-[9.5pt] font-black leading-tight">{state.bank.companyName}</span>
+                  </div>
                 </div>
-                <div className="flex justify-between border-b pb-1">
-                  <span className="text-gray-400 uppercase text-[7.5pt] font-black tracking-widest">Bank Partner</span>
-                  <span className="text-black text-right">{state.bank.bankName}</span>
+                <div className="border-b border-gray-100 pb-2">
+                  <div className="flex justify-between items-baseline gap-4">
+                    <span className="text-gray-400 uppercase text-[7pt] font-black tracking-widest flex-shrink-0">Bank Partner</span>
+                    <span className="text-black text-right text-[9.5pt] font-black">{state.bank.bankName}</span>
+                  </div>
                 </div>
-                <div className="flex justify-between border-b pb-1">
-                  <span className="text-gray-400 uppercase text-[7.5pt] font-black tracking-widest">Bank Branch</span>
-                  <span className="text-black text-right">{state.bank.branch}</span>
+                <div className="border-b border-gray-100 pb-2">
+                  <div className="flex justify-between items-baseline gap-4">
+                    <span className="text-gray-400 uppercase text-[7pt] font-black tracking-widest flex-shrink-0">Bank Branch</span>
+                    <span className="text-black text-right text-[9.5pt] font-black">{state.bank.branch}</span>
+                  </div>
                 </div>
-                <div className="flex justify-between border-b pb-1">
-                  <span className="text-gray-400 uppercase text-[7.5pt] font-black tracking-widest">Account No.</span>
-                  <span className="font-black tracking-widest">{state.bank.accountNumber}</span>
+                <div className="border-b border-gray-100 pb-2">
+                  <div className="flex justify-between items-baseline gap-4">
+                    <span className="text-gray-400 uppercase text-[7pt] font-black tracking-widest flex-shrink-0">Account No.</span>
+                    <span className="text-black text-right text-[11pt] font-black tracking-widest">{state.bank.accountNumber}</span>
+                  </div>
                 </div>
-                <div className="flex justify-between border-b pb-1">
-                  <span className="text-gray-400 uppercase text-[7.5pt] font-black tracking-widest">IFSC Code</span>
-                  <span className="font-black text-red-600">{state.bank.ifsc}</span>
+                <div className="border-b border-gray-100 pb-2">
+                  <div className="flex justify-between items-baseline gap-4">
+                    <span className="text-gray-400 uppercase text-[7pt] font-black tracking-widest flex-shrink-0">IFSC Code</span>
+                    <span className="text-red-600 text-right text-[11pt] font-black">{state.bank.ifsc}</span>
+                  </div>
                 </div>
-                <div className="flex justify-between border-b pb-1">
-                  <span className="text-gray-400 uppercase text-[7.5pt] font-black tracking-widest">PAN Number</span>
-                  <span className="font-black uppercase">{state.bank.pan}</span>
+                <div className="border-b border-gray-100 pb-2">
+                  <div className="flex justify-between items-baseline gap-4">
+                    <span className="text-gray-400 uppercase text-[7pt] font-black tracking-widest flex-shrink-0">PAN Number</span>
+                    <span className="text-black text-right text-[10pt] font-black uppercase">{state.bank.pan}</span>
+                  </div>
                 </div>
-                <div className="mt-3 text-center p-2 bg-white border border-red-50 rounded-xl shadow-inner">
-                  <p className="text-[7.5pt] text-gray-400 uppercase font-black mb-1 tracking-widest">UPI ID</p>
-                  <span className="text-[11pt] font-black text-black">{state.bank.upiId}</span>
+                <div className="mt-4 text-center p-3 bg-white border border-red-100 rounded-xl shadow-inner">
+                  <p className="text-[7pt] text-gray-400 uppercase font-black mb-1 tracking-widest">UPI ID</p>
+                  <span className="text-[12pt] font-black text-black">{state.bank.upiId}</span>
                 </div>
-                <div className="mt-3 pt-2 border-t border-gray-100">
+                <div className="mt-4 pt-3 border-t border-gray-100">
                   <p className="text-[7pt] text-gray-400 uppercase font-black mb-1 tracking-widest text-center">Bank Address</p>
-                  <p className="text-[8.5pt] text-black leading-tight text-center font-bold px-2">{state.bank.address}</p>
+                  <p className="text-[8.5pt] text-black leading-snug text-center font-bold px-4">{state.bank.address}</p>
                 </div>
-                <div className="mt-3 px-2">
-                  <p className="text-[7pt] text-red-600 font-bold text-center leading-tight">
+                <div className="mt-4 px-2">
+                  <p className="text-[7.5pt] text-red-600 font-black text-center leading-tight italic">
                     All Payments Must Be Made to Kondaas Automation Private Limited Head Office Bank Account only
                   </p>
                 </div>
@@ -454,7 +465,7 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
                   <div key={idx} className="flex gap-5 items-start">
                     <span className="text-[22pt] font-black text-gray-800 leading-none">{t.s}</span>
                     <div className="flex-1">
-                      <p className="text-[10.5pt] font-black uppercase tracking-tight mb-1.5 text-white">{t.t}</p>
+                      <p className="text-[10.5pt] font-black uppercase tracking-tight mb-1.5 text-red-600">{t.t}</p>
                       <p className="text-[8pt] text-gray-500 font-bold leading-relaxed whitespace-pre-line">{t.d}</p>
                     </div>
                   </div>
@@ -477,8 +488,8 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
               Note : All documents should belong to the KSEB consumer number owner's name
             </p>
           </div>
-          <div className="pt-1 flex justify-end px-10 w-full mt-0 mb-2">
-            <CompanySealBlock imageBottomClass="bottom-4" />
+          <div className="pt-1 flex justify-end px-10 w-full mt-0 mb-6">
+            <CompanySealBlock imageBottomClass="bottom-2" />
           </div>
         </div>
         <PageFooter pageNum={4} noMarginTop />
