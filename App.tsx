@@ -1184,7 +1184,7 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
         )}
 
         {activeSubTab === 'pricing' && (
-          <div className="space-y-6">
+          <div className="space-y-4">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <h3 className="text-lg font-bold">Pricing Packages</h3>
               <div className="flex flex-wrap gap-2 w-full md:w-auto">
@@ -1202,48 +1202,145 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
                   onClick={handleAddPricing} 
                   className="flex-1 md:flex-none bg-black text-white px-4 py-2 rounded text-xs font-black uppercase flex items-center justify-center gap-2 shadow-md active:scale-95 transition-all"
                 >
-                  <Plus className="w-4 h-4" /> Add Single
+                  <Plus className="w-4 h-4" /> Add Package
                 </button>
               </div>
             </div>
             
-            <div className="space-y-4">
-              {filteredPricing.map(p => (
-                <div key={p.id} className="border rounded-lg bg-gray-50 overflow-hidden shadow-sm">
-                  <div className="p-4 bg-white flex justify-between items-center border-b">
-                    <div className="flex-1 min-w-0 pr-4">
-                      <input className="font-black text-gray-900 border-b border-transparent focus:border-red-600 outline-none uppercase text-[11px] tracking-tight w-full truncate" value={p.name || ''} onChange={e => updatePricingItem(p.id, { name: e.target.value })} />
-                      <div className="flex gap-2 mt-1.5">
-                        <span className="text-[9px] font-black uppercase bg-gray-100 text-gray-500 px-2 py-0.5 rounded border">{p.projectType}</span>
-                        <span className="text-[9px] font-black uppercase bg-gray-100 text-gray-500 px-2 py-0.5 rounded border">{p.structureType}</span>
-                        <span className="text-[9px] font-black uppercase bg-red-50 text-red-500 px-2 py-0.5 rounded border border-red-100">{p.panelType}</span>
-                      </div>
-                    </div>
-                    <div className="flex gap-2"><button onClick={() => setEditingItemId(editingItemId === p.id ? null : p.id)} className={`text-xs font-black uppercase px-4 py-1.5 rounded border transition-colors shadow-sm ${editingItemId === p.id ? 'bg-black text-white' : 'bg-white text-blue-600 hover:bg-gray-50'}`}>{editingItemId === p.id ? 'Save' : 'Edit Prices'}</button><button onClick={() => updateSub('productPricing', pricingList.filter(item => item.id !== p.id))} className="text-red-400 hover:text-red-600 p-1"><Trash2 className="w-4 h-4" /> </button></div>
-                  </div>
-                  {editingItemId === p.id && (
-                    <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4">
-                      <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Project Type</label><select className="w-full border p-2 rounded text-xs font-bold bg-white" value={p.projectType || 'Ongrid Subsidy'} onChange={e => updatePricingItem(p.id, { projectType: e.target.value as ProjectType })}>{PROJECT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
-                      <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Structure Type</label><select className="w-full border p-2 rounded text-xs font-bold bg-white" value={p.structureType || '2 Meter Flat Roof Structure'} onChange={e => updatePricingItem(p.id, { structureType: e.target.value as StructureType })}>{STRUCTURE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
-                      <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Panel Type</label><select className="w-full border p-2 rounded text-xs font-bold bg-white" value={p.panelType || 'TOPCON G12R'} onChange={e => updatePricingItem(p.id, { panelType: e.target.value as PanelType })}>{PANEL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
-                      <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Actual Plant Cost (₹)</label><input type="number" value={p.actualPlantCost ?? ''} onChange={e => updatePricingItem(p.id, { actualPlantCost: Number(e.target.value) })} className="w-full border p-2 rounded font-black text-gray-900 bg-white" /></div>
-                      <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Discount Amount (₹)</label><input type="number" value={p.discount ?? ''} onChange={e => updatePricingItem(p.id, { discount: Number(e.target.value) })} className="w-full border p-2 rounded text-green-600 font-bold bg-white" /></div>
-                      {!p.projectType.toLowerCase().includes('non subsidy') && (
-                        <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Subsidy Amount (₹)</label><input type="number" value={p.subsidyAmount ?? ''} onChange={e => updatePricingItem(p.id, { subsidyAmount: Number(e.target.value) })} className="w-full border p-2 rounded text-red-600 font-bold bg-white" /></div>
-                      )}
-                      <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">KSEB Charges (₹)</label><input type="number" value={p.ksebCharges ?? ''} onChange={e => updatePricingItem(p.id, { ksebCharges: Number(e.target.value) })} className="w-full border p-2 rounded bg-white" /></div>
-                      <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Net Meter Cost (₹)</label><input type="number" value={p.netMeterCost ?? ''} onChange={e => updatePricingItem(p.id, { netMeterCost: Number(e.target.value) })} className="w-full border p-3 rounded bg-white" /></div>
-                    </div>
-                  )}
+            <div className="overflow-x-auto border rounded-lg shadow-sm bg-white">
+              <table className="w-full text-left border-collapse min-w-[1200px]">
+                <thead>
+                  <tr className="bg-gray-50 border-b">
+                    <th className="p-3 text-[10px] font-black uppercase text-gray-500 border-r">Package Name</th>
+                    <th className="p-3 text-[10px] font-black uppercase text-gray-500 border-r">Project Type</th>
+                    <th className="p-3 text-[10px] font-black uppercase text-gray-500 border-r">Structure</th>
+                    <th className="p-3 text-[10px] font-black uppercase text-gray-500 border-r">Panel</th>
+                    <th className="p-3 text-[10px] font-black uppercase text-gray-500 border-r text-right">Cost (₹)</th>
+                    <th className="p-3 text-[10px] font-black uppercase text-gray-500 border-r text-right">Disc (₹)</th>
+                    <th className="p-3 text-[10px] font-black uppercase text-gray-500 border-r text-right">Subsidy (₹)</th>
+                    <th className="p-3 text-[10px] font-black uppercase text-gray-500 border-r text-right">KSEB (₹)</th>
+                    <th className="p-3 text-[10px] font-black uppercase text-gray-500 border-r text-right">Net Mtr (₹)</th>
+                    <th className="p-3 text-[10px] font-black uppercase text-gray-500 text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {filteredPricing.map(p => (
+                    <tr key={p.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="p-1 border-r">
+                        <input 
+                          className="w-full p-2 text-xs font-bold outline-none bg-transparent focus:bg-blue-50" 
+                          value={p.name || ''} 
+                          onChange={e => updatePricingItem(p.id, { name: e.target.value })} 
+                        />
+                      </td>
+                      <td className="p-1 border-r">
+                        <select 
+                          className="w-full p-2 text-[10px] font-bold outline-none bg-transparent focus:bg-blue-50 appearance-none" 
+                          value={p.projectType} 
+                          onChange={e => updatePricingItem(p.id, { projectType: e.target.value as ProjectType })}
+                        >
+                          {PROJECT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                        </select>
+                      </td>
+                      <td className="p-1 border-r">
+                        <select 
+                          className="w-full p-2 text-[10px] font-bold outline-none bg-transparent focus:bg-blue-50 appearance-none" 
+                          value={p.structureType} 
+                          onChange={e => updatePricingItem(p.id, { structureType: e.target.value as StructureType })}
+                        >
+                          {STRUCTURE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                        </select>
+                      </td>
+                      <td className="p-1 border-r">
+                        <select 
+                          className="w-full p-2 text-[10px] font-bold outline-none bg-transparent focus:bg-blue-50 appearance-none" 
+                          value={p.panelType} 
+                          onChange={e => updatePricingItem(p.id, { panelType: e.target.value as PanelType })}
+                        >
+                          {PANEL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                        </select>
+                      </td>
+                      <td className="p-1 border-r">
+                        <input 
+                          type="number"
+                          className="w-full p-2 text-xs font-bold text-right outline-none bg-transparent focus:bg-blue-50" 
+                          value={p.actualPlantCost ?? ''} 
+                          onChange={e => updatePricingItem(p.id, { actualPlantCost: Number(e.target.value) })} 
+                        />
+                      </td>
+                      <td className="p-1 border-r">
+                        <input 
+                          type="number"
+                          className="w-full p-2 text-xs font-bold text-right text-green-600 outline-none bg-transparent focus:bg-blue-50" 
+                          value={p.discount ?? ''} 
+                          onChange={e => updatePricingItem(p.id, { discount: Number(e.target.value) })} 
+                        />
+                      </td>
+                      <td className="p-1 border-r">
+                        <input 
+                          type="number"
+                          className="w-full p-2 text-xs font-bold text-right text-red-600 outline-none bg-transparent focus:bg-blue-50 disabled:opacity-30" 
+                          value={p.subsidyAmount ?? ''} 
+                          onChange={e => updatePricingItem(p.id, { subsidyAmount: Number(e.target.value) })} 
+                          disabled={p.projectType.toLowerCase().includes('non subsidy')}
+                        />
+                      </td>
+                      <td className="p-1 border-r">
+                        <input 
+                          type="number"
+                          className="w-full p-2 text-xs font-bold text-right outline-none bg-transparent focus:bg-blue-50" 
+                          value={p.ksebCharges ?? ''} 
+                          onChange={e => updatePricingItem(p.id, { ksebCharges: Number(e.target.value) })} 
+                        />
+                      </td>
+                      <td className="p-1 border-r">
+                        <input 
+                          type="number"
+                          className="w-full p-2 text-xs font-bold text-right outline-none bg-transparent focus:bg-blue-50" 
+                          value={p.netMeterCost ?? ''} 
+                          onChange={e => updatePricingItem(p.id, { netMeterCost: Number(e.target.value) })} 
+                        />
+                      </td>
+                      <td className="p-2 text-center">
+                        <div className="flex justify-center gap-1">
+                          <button 
+                            onClick={() => {
+                              const newId = Date.now().toString();
+                              updateSub('productPricing', [...pricingList, { ...p, id: newId, name: `${p.name} (Copy)` }]);
+                            }}
+                            className="p-1.5 text-blue-500 hover:bg-blue-50 rounded transition-colors"
+                            title="Duplicate"
+                          >
+                            <Copy className="w-3.5 h-3.5" />
+                          </button>
+                          <button 
+                            onClick={() => {
+                              if(confirm('Delete this pricing package?')) {
+                                updateSub('productPricing', pricingList.filter(item => item.id !== p.id));
+                              }
+                            }}
+                            className="p-1.5 text-red-400 hover:bg-red-50 rounded transition-colors"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {filteredPricing.length === 0 && (
+                <div className="text-center py-12 text-gray-400">
+                  <p className="text-xs font-black uppercase tracking-widest">No pricing packages found</p>
                 </div>
-              ))}
-              {filteredPricing.length === 0 && <p className="text-center py-10 text-gray-400 text-xs font-bold uppercase tracking-widest border-2 border-dashed rounded-lg">No pricing packages found for these filters.</p>}
+              )}
             </div>
           </div>
         )}
 
         {activeSubTab === 'products' && (
-          <div className="space-y-6">
+          <div className="space-y-4">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <h3 className="text-lg font-bold">Product Specifications & Headings</h3>
               <div className="flex flex-wrap gap-2 w-full md:w-auto">
@@ -1265,59 +1362,111 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
                 </button>
               </div>
             </div>
-            <div className="space-y-4">
-              {filteredProducts.map((desc) => (
-                <div key={desc.id} className="border rounded-xl overflow-hidden shadow-sm border-gray-100 bg-white transition-all hover:border-red-100">
-                  {/* Collapsible Header */}
-                  <div 
-                    onClick={() => setExpandedProductId(expandedProductId === desc.id ? null : desc.id)}
-                    className="p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-colors border-b border-transparent"
-                  >
-                    <div className="flex flex-col flex-1 min-w-0 pr-4">
-                      <div className="flex items-center gap-3">
-                        {expandedProductId === desc.id ? <ChevronUp className="w-5 h-5 text-red-600 flex-shrink-0" /> : <ChevronDown className="w-5 h-5 text-gray-400 flex-shrink-0" />}
-                        <h4 className="font-black text-gray-900 uppercase truncate text-[11px] tracking-tight">{desc.name || 'Untitled Specification'}</h4>
-                      </div>
-                      <div className="flex gap-2 mt-1.5 ml-8">
-                        <span className="text-[9px] font-black uppercase bg-gray-100 text-gray-500 px-2 py-0.5 rounded border">{desc.projectType}</span>
-                        <span className="text-[9px] font-black uppercase bg-red-50 text-red-500 px-2 py-0.5 rounded border border-red-100">{desc.panelType}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                       <button onClick={(e) => { e.stopPropagation(); updateSub('productDescriptions', productsList.filter(i => i.id !== desc.id)); }} className="text-red-300 hover:text-red-500 p-2"><Trash2 className="w-4 h-4"/></button>
-                    </div>
-                  </div>
-
-                  {/* Collapsible Content */}
-                  {expandedProductId === desc.id && (
-                    <div className="p-6 bg-gray-50 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 animate-in fade-in slide-in-from-top-1 duration-200">
-                      <div className="md:col-span-2">
-                        <label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Full Product Description Heading (A4 PDF Title)</label>
-                        <input className="w-full bg-white border p-3 rounded-lg text-sm font-black text-gray-900 uppercase tracking-tight focus:ring-2 focus:ring-red-500 outline-none" value={desc.name || ''} onChange={e => updateProductDesc(desc.id, { name: e.target.value })} />
-                      </div>
-                      <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Category Classification</label><select className="w-full border p-2.5 rounded-lg bg-white text-xs font-bold" value={desc.projectType || 'Ongrid Subsidy'} onChange={e => updateProductDesc(desc.id, { projectType: e.target.value as ProjectType })}>{PROJECT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
-                      <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Structural Classification</label><select className="w-full border p-2.5 rounded-lg bg-white text-xs font-bold" value={desc.structureType || '2 Meter Flat Roof Structure'} onChange={e => updateProductDesc(desc.id, { structureType: e.target.value as StructureType })}>{STRUCTURE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
-                      <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Panel Type Classification</label><select className="w-full border p-2.5 rounded-lg bg-white text-xs font-bold" value={desc.panelType || 'TOPCON G12R'} onChange={e => updateProductDesc(desc.id, { panelType: e.target.value as PanelType })}>{PANEL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
-                      <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Link Pricing Model (Auto-Fill)</label>
-                        <select className="w-full border p-2.5 rounded-lg bg-white text-xs font-bold text-blue-600" value={desc.defaultPricingId || ''} onChange={e => updateProductDesc(desc.id, { defaultPricingId: e.target.value })}>
+            
+            <div className="overflow-x-auto border rounded-lg shadow-sm bg-white">
+              <table className="w-full text-left border-collapse min-w-[1200px]">
+                <thead>
+                  <tr className="bg-gray-50 border-b">
+                    <th className="p-3 text-[10px] font-black uppercase text-gray-500 border-r">Specification Heading</th>
+                    <th className="p-3 text-[10px] font-black uppercase text-gray-500 border-r">Project Type</th>
+                    <th className="p-3 text-[10px] font-black uppercase text-gray-500 border-r">Structure</th>
+                    <th className="p-3 text-[10px] font-black uppercase text-gray-500 border-r">Panel</th>
+                    <th className="p-3 text-[10px] font-black uppercase text-gray-500 border-r">Linked Pricing</th>
+                    <th className="p-3 text-[10px] font-black uppercase text-gray-500 border-r">Linked BOM</th>
+                    <th className="p-3 text-[10px] font-black uppercase text-gray-500 text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {filteredProducts.map(desc => (
+                    <tr key={desc.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="p-1 border-r">
+                        <input 
+                          className="w-full p-2 text-xs font-bold outline-none bg-transparent focus:bg-blue-50 uppercase" 
+                          value={desc.name || ''} 
+                          onChange={e => updateProductDesc(desc.id, { name: e.target.value })} 
+                        />
+                      </td>
+                      <td className="p-1 border-r">
+                        <select 
+                          className="w-full p-2 text-[10px] font-bold outline-none bg-transparent focus:bg-blue-50 appearance-none" 
+                          value={desc.projectType} 
+                          onChange={e => updateProductDesc(desc.id, { projectType: e.target.value as ProjectType })}
+                        >
+                          {PROJECT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                        </select>
+                      </td>
+                      <td className="p-1 border-r">
+                        <select 
+                          className="w-full p-2 text-[10px] font-bold outline-none bg-transparent focus:bg-blue-50 appearance-none" 
+                          value={desc.structureType} 
+                          onChange={e => updateProductDesc(desc.id, { structureType: e.target.value as StructureType })}
+                        >
+                          {STRUCTURE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                        </select>
+                      </td>
+                      <td className="p-1 border-r">
+                        <select 
+                          className="w-full p-2 text-[10px] font-bold outline-none bg-transparent focus:bg-blue-50 appearance-none" 
+                          value={desc.panelType} 
+                          onChange={e => updateProductDesc(desc.id, { panelType: e.target.value as PanelType })}
+                        >
+                          {PANEL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                        </select>
+                      </td>
+                      <td className="p-1 border-r">
+                        <select 
+                          className="w-full p-2 text-[10px] font-bold outline-none bg-transparent focus:bg-blue-50 appearance-none text-blue-600" 
+                          value={desc.defaultPricingId || ''} 
+                          onChange={e => updateProductDesc(desc.id, { defaultPricingId: e.target.value })}
+                        >
                           <option value="">-- No Auto-Link --</option>
                           {pricingList.filter(pr => pr.projectType === desc.projectType && pr.structureType === desc.structureType && pr.panelType === desc.panelType).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                         </select>
-                      </div>
-                      <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Link BOM Template (Auto-Fill)</label>
-                        <select className="w-full border p-2.5 rounded-lg bg-white text-xs font-bold text-red-600" value={desc.defaultBomTemplateId || ''} onChange={e => updateProductDesc(desc.id, { defaultBomTemplateId: e.target.value })}>
+                      </td>
+                      <td className="p-1 border-r">
+                        <select 
+                          className="w-full p-2 text-[10px] font-bold outline-none bg-transparent focus:bg-blue-50 appearance-none text-red-600" 
+                          value={desc.defaultBomTemplateId || ''} 
+                          onChange={e => updateProductDesc(desc.id, { defaultBomTemplateId: e.target.value })}
+                        >
                           <option value="">-- No Auto-Link --</option>
                           {templatesList.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                         </select>
-                      </div>
-                      <div className="md:col-span-2 flex justify-end pt-2">
-                        <button onClick={() => setExpandedProductId(null)} className="text-gray-500 text-[10px] font-black uppercase flex items-center gap-1 hover:bg-gray-200 px-3 py-1.5 rounded-full transition-colors border border-gray-200">Collapse Panel</button>
-                      </div>
-                    </div>
-                  )}
+                      </td>
+                      <td className="p-2 text-center">
+                        <div className="flex justify-center gap-1">
+                          <button 
+                            onClick={() => {
+                              const newId = Date.now().toString();
+                              updateSub('productDescriptions', [...productsList, { ...desc, id: newId, name: `${desc.name} (Copy)` }]);
+                            }}
+                            className="p-1.5 text-blue-500 hover:bg-blue-50 rounded transition-colors"
+                            title="Duplicate"
+                          >
+                            <Copy className="w-3.5 h-3.5" />
+                          </button>
+                          <button 
+                            onClick={() => {
+                              if(confirm('Delete this product specification?')) {
+                                updateSub('productDescriptions', productsList.filter(item => item.id !== desc.id));
+                              }
+                            }}
+                            className="p-1.5 text-red-400 hover:bg-red-50 rounded transition-colors"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {filteredProducts.length === 0 && (
+                <div className="text-center py-12 text-gray-400">
+                  <p className="text-xs font-black uppercase tracking-widest">No specifications found</p>
                 </div>
-              ))}
-              {filteredProducts.length === 0 && <p className="text-center py-10 text-gray-400 text-xs font-bold uppercase tracking-widest border-2 border-dashed rounded-lg bg-gray-50/50">No product definitions matched the current categorization. Reset filters to view all.</p>}
+              )}
             </div>
           </div>
         )}
