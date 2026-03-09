@@ -4,7 +4,24 @@ import { AppState, Quotation, BOMTemplate, BOMItem, ProductPricing, ProductDescr
 import AdminPanel from './components/AdminPanel';
 import QuotationForm from './components/QuotationForm';
 import PrintableView from './components/PrintableView';
-import { LogIn, FileText, Settings, LayoutDashboard, PlusCircle, LogOut, Trash2, Plus, Copy, ChevronDown, ChevronUp, Loader2, Link, Users, UserPlus, CheckCircle, AlertCircle, Edit, Filter, RefreshCw, Upload, DownloadCloud, ShieldCheck, Search } from 'lucide-react';
+import { LogIn, FileText, Settings, LayoutDashboard, PlusCircle, LogOut, Trash2, Plus, Copy, ChevronDown, ChevronUp, Loader2, Link, Users, UserPlus, CheckCircle, AlertCircle, Edit, Filter, RefreshCw, Upload, DownloadCloud, ShieldCheck, Search, GripVertical } from 'lucide-react';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import * as XLSX from 'xlsx';
 import _html2pdf from 'html2pdf.js';
 
@@ -412,6 +429,173 @@ const App: React.FC = () => {
   );
 };
 
+interface SortableProductRowProps {
+  desc: ProductDescription;
+  updateProductDesc: (id: string, updates: Partial<ProductDescription>) => void;
+  updateSub: (key: keyof AppState, data: any) => void;
+  productsList: ProductDescription[];
+  pricingList: ProductPricing[];
+  templatesList: BOMTemplate[];
+  columnWidths: Record<string, number>;
+}
+
+const SortableProductRow: React.FC<SortableProductRowProps> = ({ 
+  desc, 
+  updateProductDesc, 
+  updateSub, 
+  productsList, 
+  pricingList, 
+  templatesList,
+  columnWidths
+}) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({ id: desc.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 10 : 1,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <tr ref={setNodeRef} style={style} className="hover:bg-gray-50 transition-colors group">
+      <td className="p-1 border-r text-center w-10">
+        <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing p-1 text-gray-400 hover:text-gray-600">
+          <GripVertical className="w-4 h-4" />
+        </button>
+      </td>
+      <td className="p-1 border-r" style={{ width: columnWidths.name }}>
+        <input 
+          className="w-full p-2 text-xs font-bold outline-none bg-transparent focus:bg-blue-50 uppercase" 
+          value={desc.name || ''} 
+          onChange={e => updateProductDesc(desc.id, { name: e.target.value })} 
+        />
+      </td>
+      <td className="p-1 border-r" style={{ width: columnWidths.projectType }}>
+        <select 
+          className="w-full p-2 text-[10px] font-bold outline-none bg-transparent focus:bg-blue-50 appearance-none" 
+          value={desc.projectType} 
+          onChange={e => updateProductDesc(desc.id, { projectType: e.target.value as ProjectType })}
+        >
+          {PROJECT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+        </select>
+      </td>
+      <td className="p-1 border-r" style={{ width: columnWidths.structureType }}>
+        <select 
+          className="w-full p-2 text-[10px] font-bold outline-none bg-transparent focus:bg-blue-50 appearance-none" 
+          value={desc.structureType} 
+          onChange={e => updateProductDesc(desc.id, { structureType: e.target.value as StructureType })}
+        >
+          {STRUCTURE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+        </select>
+      </td>
+      <td className="p-1 border-r" style={{ width: columnWidths.panelType }}>
+        <select 
+          className="w-full p-2 text-[10px] font-bold outline-none bg-transparent focus:bg-blue-50 appearance-none" 
+          value={desc.panelType} 
+          onChange={e => updateProductDesc(desc.id, { panelType: e.target.value as PanelType })}
+        >
+          {PANEL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+        </select>
+      </td>
+      <td className="p-1 border-r" style={{ width: columnWidths.pricing }}>
+        <select 
+          className="w-full p-2 text-[10px] font-bold outline-none bg-transparent focus:bg-blue-50 appearance-none text-blue-600" 
+          value={desc.defaultPricingId || ''} 
+          onChange={e => updateProductDesc(desc.id, { defaultPricingId: e.target.value })}
+        >
+          <option value="">-- No Auto-Link --</option>
+          {pricingList.filter(pr => pr.projectType === desc.projectType && pr.structureType === desc.structureType && pr.panelType === desc.panelType).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+      </td>
+      <td className="p-1 border-r" style={{ width: columnWidths.bom }}>
+        <select 
+          className="w-full p-2 text-[10px] font-bold outline-none bg-transparent focus:bg-blue-50 appearance-none text-red-600" 
+          value={desc.defaultBomTemplateId || ''} 
+          onChange={e => updateProductDesc(desc.id, { defaultBomTemplateId: e.target.value })}
+        >
+          <option value="">-- No Auto-Link --</option>
+          {templatesList.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+        </select>
+      </td>
+      <td className="p-2 text-center">
+        <div className="flex justify-center gap-1">
+          <button 
+            onClick={() => {
+              const newId = Date.now().toString();
+              updateSub('productDescriptions', [...productsList, { ...desc, id: newId, name: `${desc.name} (Copy)`, order: (desc.order || 0) + 1 }]);
+            }}
+            className="p-1.5 text-blue-500 hover:bg-blue-50 rounded transition-colors"
+            title="Duplicate"
+          >
+            <Copy className="w-3.5 h-3.5" />
+          </button>
+          <button 
+            onClick={() => {
+              if(confirm('Delete this product specification?')) {
+                updateSub('productDescriptions', productsList.filter(item => item.id !== desc.id));
+              }
+            }}
+            className="p-1.5 text-red-400 hover:bg-red-50 rounded transition-colors"
+            title="Delete"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
+};
+
+interface ResizableHeaderProps {
+  label: string;
+  width: number;
+  onResize: (newWidth: number) => void;
+  className?: string;
+}
+
+const ResizableHeader: React.FC<ResizableHeaderProps> = ({ label, width, onResize, className = "" }) => {
+  const [isResizing, setIsResizing] = useState(false);
+  const startX = useRef(0);
+  const startWidth = useRef(0);
+
+  const onMouseDown = (e: React.MouseEvent) => {
+    setIsResizing(true);
+    startX.current = e.pageX;
+    startWidth.current = width;
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  };
+
+  const onMouseMove = (e: MouseEvent) => {
+    const newWidth = Math.max(50, startWidth.current + (e.pageX - startX.current));
+    onResize(newWidth);
+  };
+
+  const onMouseUp = () => {
+    setIsResizing(false);
+    document.removeEventListener('mousemove', onMouseMove);
+    document.removeEventListener('mouseup', onMouseUp);
+  };
+
+  return (
+    <th className={`p-3 text-[10px] font-black uppercase text-gray-500 border-r relative group ${className}`} style={{ width }}>
+      {label}
+      <div 
+        onMouseDown={onMouseDown}
+        className={`absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-blue-400 transition-colors ${isResizing ? 'bg-blue-500' : ''}`}
+      />
+    </th>
+  );
+};
+
 const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promise<void> }> = ({ state, onUpdate }) => {
   const [activeSubTab, setActiveSubTab] = useState<'company' | 'users' | 'pricing' | 'terms' | 'bank' | 'warranty' | 'bom' | 'products'>('company');
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
@@ -426,6 +610,51 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
 
   const [newUser, setNewUser] = useState<Partial<User>>({ role: 'user', name: '', username: '', password: '', salesPersonName: '', salesPersonMobile: '' });
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
+
+  const pricingList = state.productPricing || [];
+  const productsList = state.productDescriptions || [];
+  const templatesList = state.bomTemplates || [];
+  const termsList = state.terms || [];
+  const usersList = state.users || [];
+  const warrantiesList = state.warrantyPackages || [];
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      const oldIndex = productsList.findIndex((item) => item.id === active.id);
+      const newIndex = productsList.findIndex((item) => item.id === over.id);
+      const newProducts = arrayMove(productsList, oldIndex, newIndex).map((item, index) => ({
+        ...item,
+        order: index + 1
+      }));
+      updateSub('productDescriptions', newProducts);
+    }
+  };
+
+  const updateProductDesc = (id: string, updates: Partial<ProductDescription>) => {
+    updateSub('productDescriptions', productsList.map(p => p.id === id ? { ...p, ...updates } : p));
+  };
+
+  const updateColumnWidth = (col: string, width: number) => {
+    const currentWidths = state.productColumnWidths || INITIAL_STATE.productColumnWidths || {};
+    updateSub('productColumnWidths', { ...currentWidths, [col]: width });
+  };
+
+  const columnWidths = state.productColumnWidths || INITIAL_STATE.productColumnWidths || {
+    name: 300,
+    projectType: 150,
+    structureType: 150,
+    panelType: 150,
+    pricing: 150,
+    bom: 150
+  };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const productFileInputRef = useRef<HTMLInputElement>(null);
@@ -950,11 +1179,6 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
     setExpandedProductId(newId);
   };
 
-  const updateProductDesc = (id: string, updates: Partial<ProductDescription>) => {
-    const currentProducts = state.productDescriptions || [];
-    updateSub('productDescriptions', currentProducts.map(p => p.id === id ? { ...p, ...updates } : p));
-  };
-
   const handleCreateTemplate = () => {
     const currentTemplates = state.bomTemplates || [];
     const newId = Date.now().toString();
@@ -968,13 +1192,6 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
     updateSub('bomTemplates', currentTemplates.map(t => t.id === id ? { ...t, ...updates } : t));
   };
 
-  const pricingList = state.productPricing || [];
-  const productsList = state.productDescriptions || [];
-  const templatesList = state.bomTemplates || [];
-  const termsList = state.terms || [];
-  const usersList = state.users || [];
-  const warrantiesList = state.warrantyPackages || [];
-
   const filteredPricing = pricingList.filter(p => {
     const ptMatch = filterProjectType === 'All' || p.projectType === filterProjectType;
     const stMatch = filterStructureType === 'All' || p.structureType === filterStructureType;
@@ -987,7 +1204,7 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
     const stMatch = filterStructureType === 'All' || p.structureType === filterStructureType;
     const paMatch = filterPanelType === 'All' || p.panelType === filterPanelType;
     return ptMatch && stMatch && paMatch;
-  });
+  }).sort((a, b) => (a.order || 0) - (b.order || 0));
 
   const filteredWarranties = warrantiesList.filter(w => {
     const ptMatch = filterProjectType === 'All' || w.projectType === filterProjectType;
@@ -1364,104 +1581,45 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
             </div>
             
             <div className="overflow-x-auto border rounded-lg shadow-sm bg-white">
-              <table className="w-full text-left border-collapse min-w-[1200px]">
-                <thead>
-                  <tr className="bg-gray-50 border-b">
-                    <th className="p-3 text-[10px] font-black uppercase text-gray-500 border-r">Specification Heading</th>
-                    <th className="p-3 text-[10px] font-black uppercase text-gray-500 border-r">Project Type</th>
-                    <th className="p-3 text-[10px] font-black uppercase text-gray-500 border-r">Structure</th>
-                    <th className="p-3 text-[10px] font-black uppercase text-gray-500 border-r">Panel</th>
-                    <th className="p-3 text-[10px] font-black uppercase text-gray-500 border-r">Linked Pricing</th>
-                    <th className="p-3 text-[10px] font-black uppercase text-gray-500 border-r">Linked BOM</th>
-                    <th className="p-3 text-[10px] font-black uppercase text-gray-500 text-center">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {filteredProducts.map(desc => (
-                    <tr key={desc.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="p-1 border-r">
-                        <input 
-                          className="w-full p-2 text-xs font-bold outline-none bg-transparent focus:bg-blue-50 uppercase" 
-                          value={desc.name || ''} 
-                          onChange={e => updateProductDesc(desc.id, { name: e.target.value })} 
-                        />
-                      </td>
-                      <td className="p-1 border-r">
-                        <select 
-                          className="w-full p-2 text-[10px] font-bold outline-none bg-transparent focus:bg-blue-50 appearance-none" 
-                          value={desc.projectType} 
-                          onChange={e => updateProductDesc(desc.id, { projectType: e.target.value as ProjectType })}
-                        >
-                          {PROJECT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                        </select>
-                      </td>
-                      <td className="p-1 border-r">
-                        <select 
-                          className="w-full p-2 text-[10px] font-bold outline-none bg-transparent focus:bg-blue-50 appearance-none" 
-                          value={desc.structureType} 
-                          onChange={e => updateProductDesc(desc.id, { structureType: e.target.value as StructureType })}
-                        >
-                          {STRUCTURE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                        </select>
-                      </td>
-                      <td className="p-1 border-r">
-                        <select 
-                          className="w-full p-2 text-[10px] font-bold outline-none bg-transparent focus:bg-blue-50 appearance-none" 
-                          value={desc.panelType} 
-                          onChange={e => updateProductDesc(desc.id, { panelType: e.target.value as PanelType })}
-                        >
-                          {PANEL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                        </select>
-                      </td>
-                      <td className="p-1 border-r">
-                        <select 
-                          className="w-full p-2 text-[10px] font-bold outline-none bg-transparent focus:bg-blue-50 appearance-none text-blue-600" 
-                          value={desc.defaultPricingId || ''} 
-                          onChange={e => updateProductDesc(desc.id, { defaultPricingId: e.target.value })}
-                        >
-                          <option value="">-- No Auto-Link --</option>
-                          {pricingList.filter(pr => pr.projectType === desc.projectType && pr.structureType === desc.structureType && pr.panelType === desc.panelType).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                        </select>
-                      </td>
-                      <td className="p-1 border-r">
-                        <select 
-                          className="w-full p-2 text-[10px] font-bold outline-none bg-transparent focus:bg-blue-50 appearance-none text-red-600" 
-                          value={desc.defaultBomTemplateId || ''} 
-                          onChange={e => updateProductDesc(desc.id, { defaultBomTemplateId: e.target.value })}
-                        >
-                          <option value="">-- No Auto-Link --</option>
-                          {templatesList.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                        </select>
-                      </td>
-                      <td className="p-2 text-center">
-                        <div className="flex justify-center gap-1">
-                          <button 
-                            onClick={() => {
-                              const newId = Date.now().toString();
-                              updateSub('productDescriptions', [...productsList, { ...desc, id: newId, name: `${desc.name} (Copy)` }]);
-                            }}
-                            className="p-1.5 text-blue-500 hover:bg-blue-50 rounded transition-colors"
-                            title="Duplicate"
-                          >
-                            <Copy className="w-3.5 h-3.5" />
-                          </button>
-                          <button 
-                            onClick={() => {
-                              if(confirm('Delete this product specification?')) {
-                                updateSub('productDescriptions', productsList.filter(item => item.id !== desc.id));
-                              }
-                            }}
-                            className="p-1.5 text-red-400 hover:bg-red-50 rounded transition-colors"
-                            title="Delete"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </td>
+              <DndContext 
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <table className="w-full text-left border-collapse min-w-[1200px] table-fixed">
+                  <thead>
+                    <tr className="bg-gray-50 border-b">
+                      <th className="w-10 border-r"></th>
+                      <ResizableHeader label="Specification Heading" width={columnWidths.name} onResize={(w) => updateColumnWidth('name', w)} />
+                      <ResizableHeader label="Project Type" width={columnWidths.projectType} onResize={(w) => updateColumnWidth('projectType', w)} />
+                      <ResizableHeader label="Structure" width={columnWidths.structureType} onResize={(w) => updateColumnWidth('structureType', w)} />
+                      <ResizableHeader label="Panel" width={columnWidths.panelType} onResize={(w) => updateColumnWidth('panelType', w)} />
+                      <ResizableHeader label="Linked Pricing" width={columnWidths.pricing} onResize={(w) => updateColumnWidth('pricing', w)} />
+                      <ResizableHeader label="Linked BOM" width={columnWidths.bom} onResize={(w) => updateColumnWidth('bom', w)} />
+                      <th className="p-3 text-[10px] font-black uppercase text-gray-500 text-center">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y">
+                    <SortableContext 
+                      items={filteredProducts.map(p => p.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      {filteredProducts.map(desc => (
+                        <SortableProductRow 
+                          key={desc.id}
+                          desc={desc}
+                          updateProductDesc={updateProductDesc}
+                          updateSub={updateSub}
+                          productsList={productsList}
+                          pricingList={pricingList}
+                          templatesList={templatesList}
+                          columnWidths={columnWidths}
+                        />
+                      ))}
+                    </SortableContext>
+                  </tbody>
+                </table>
+              </DndContext>
               {filteredProducts.length === 0 && (
                 <div className="text-center py-12 text-gray-400">
                   <p className="text-xs font-black uppercase tracking-widest">No specifications found</p>

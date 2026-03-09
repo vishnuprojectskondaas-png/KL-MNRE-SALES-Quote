@@ -82,8 +82,16 @@ export const INITIAL_STATE: AppState = {
     { id: '3kw-std', name: '3kW Standard On-Grid', items: DEFAULT_BOM_3KW }
   ],
   productDescriptions: [
-    { id: '1', name: '3kW ON-GRID SOLAR POWER GENERATING SYSTEM', projectType: 'Ongrid Subsidy', structureType: '2 Meter Flat Roof Structure', panelType: 'TOPCON G12R', defaultPricingId: 'p3kw', defaultBomTemplateId: '3kw-std' }
+    { id: '1', name: '3kW ON-GRID SOLAR POWER GENERATING SYSTEM', projectType: 'Ongrid Subsidy', structureType: '2 Meter Flat Roof Structure', panelType: 'TOPCON G12R', defaultPricingId: 'p3kw', defaultBomTemplateId: '3kw-std', order: 1 }
   ],
+  productColumnWidths: {
+    name: 300,
+    projectType: 150,
+    structureType: 150,
+    panelType: 150,
+    pricing: 150,
+    bom: 150
+  },
   users: DEFAULT_USERS,
   quotations: [],
   nextId: 1000
@@ -133,6 +141,7 @@ export const fetchFullState = async (): Promise<AppState> => {
       terms: settingsRow?.terms || INITIAL_STATE.terms,
       bomTemplates: settingsRow?.bom_templates || INITIAL_STATE.bomTemplates,
       productDescriptions: settingsRow?.product_descriptions || INITIAL_STATE.productDescriptions,
+      productColumnWidths: settingsRow?.product_column_widths || INITIAL_STATE.productColumnWidths,
       users: settingsRow?.users || INITIAL_STATE.users,
       quotations: parsedQuotes,
       nextId: maxId + 1
@@ -157,6 +166,7 @@ export const saveSettingsToLocal = async (state: AppState): Promise<boolean> => 
         terms: state.terms,
         bom_templates: state.bomTemplates,
         product_descriptions: state.productDescriptions,
+        product_column_widths: state.productColumnWidths,
         users: state.users
       });
 

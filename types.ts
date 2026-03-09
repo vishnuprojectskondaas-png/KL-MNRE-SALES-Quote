@@ -125,6 +125,7 @@ export interface ProductDescription {
   panelType: PanelType;
   defaultPricingId?: string;
   defaultBomTemplateId?: string;
+  order?: number;
 }
 
 export type UserRole = 'admin' | 'user' | 'TL';
@@ -168,6 +169,7 @@ export interface AppState {
   terms: Term[];
   bomTemplates: BOMTemplate[];
   productDescriptions: ProductDescription[];
+  productColumnWidths?: Record<string, number>;
   users: User[];
   quotations: Quotation[];
   nextId: number;

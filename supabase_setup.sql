@@ -11,14 +11,18 @@ create table if not exists settings (
   terms jsonb,
   bom_templates jsonb,
   product_descriptions jsonb,
+  product_column_widths jsonb,
   users jsonb -- This is the critical column for User Management
 );
 
--- 2. Force Add 'users' column if it is missing (Safe to run multiple times)
+-- 2. Force Add 'users' and 'product_column_widths' column if it is missing (Safe to run multiple times)
 do $$
 begin
   if not exists (select 1 from information_schema.columns where table_name = 'settings' and column_name = 'users') then
     alter table settings add column users jsonb default '[]'::jsonb;
+  end if;
+  if not exists (select 1 from information_schema.columns where table_name = 'settings' and column_name = 'product_column_widths') then
+    alter table settings add column product_column_widths jsonb default '{}'::jsonb;
   end if;
 end $$;
 

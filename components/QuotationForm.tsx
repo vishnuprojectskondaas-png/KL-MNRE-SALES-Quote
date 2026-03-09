@@ -52,11 +52,13 @@ const QuotationForm: React.FC<Props> = ({ state, currentUser, editData, onSave, 
   const canChangeStatus = currentUser.role === 'admin' || currentUser.role === 'TL';
 
   // Filter products based on selected categories
-  const filteredProducts = state.productDescriptions.filter(p => 
-    p.projectType === formData.projectType && 
-    p.structureType === formData.structureType &&
-    p.panelType === formData.panelType
-  );
+  const filteredProducts = state.productDescriptions
+    .filter(p => 
+      p.projectType === formData.projectType && 
+      p.structureType === formData.structureType &&
+      p.panelType === formData.panelType
+    )
+    .sort((a, b) => (a.order || 0) - (b.order || 0));
 
   const handleCategoryChange = (updates: Partial<Quotation>) => {
     setFormData(prev => ({
