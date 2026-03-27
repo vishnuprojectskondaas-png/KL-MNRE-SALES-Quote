@@ -114,6 +114,9 @@ export interface BOMItem {
 export interface BOMTemplate {
   id: string;
   name: string;
+  projectType?: ProjectType;
+  structureType?: StructureType;
+  panelType?: PanelType;
   items: BOMItem[];
 }
 
@@ -170,6 +173,7 @@ export interface AppState {
   bomTemplates: BOMTemplate[];
   productDescriptions: ProductDescription[];
   productColumnWidths?: Record<string, number>;
+  bomColumnWidths?: Record<string, number>;
   users: User[];
   quotations: Quotation[];
   nextId: number;

@@ -24,6 +24,9 @@ begin
   if not exists (select 1 from information_schema.columns where table_name = 'settings' and column_name = 'product_column_widths') then
     alter table settings add column product_column_widths jsonb default '{}'::jsonb;
   end if;
+  if not exists (select 1 from information_schema.columns where table_name = 'settings' and column_name = 'bom_column_widths') then
+    alter table settings add column bom_column_widths jsonb default '{}'::jsonb;
+  end if;
 end $$;
 
 -- 3. Enable Security

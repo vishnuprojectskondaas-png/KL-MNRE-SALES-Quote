@@ -92,6 +92,13 @@ export const INITIAL_STATE: AppState = {
     pricing: 150,
     bom: 150
   },
+  bomColumnWidths: {
+    product: 200,
+    uom: 80,
+    quantity: 80,
+    specification: 250,
+    make: 150
+  },
   users: DEFAULT_USERS,
   quotations: [],
   nextId: 1000
@@ -142,6 +149,7 @@ export const fetchFullState = async (): Promise<AppState> => {
       bomTemplates: settingsRow?.bom_templates || INITIAL_STATE.bomTemplates,
       productDescriptions: settingsRow?.product_descriptions || INITIAL_STATE.productDescriptions,
       productColumnWidths: settingsRow?.product_column_widths || INITIAL_STATE.productColumnWidths,
+      bomColumnWidths: settingsRow?.bom_column_widths || INITIAL_STATE.bomColumnWidths,
       users: settingsRow?.users || INITIAL_STATE.users,
       quotations: parsedQuotes,
       nextId: maxId + 1
@@ -167,6 +175,7 @@ export const saveSettingsToLocal = async (state: AppState): Promise<boolean> => 
         bom_templates: state.bomTemplates,
         product_descriptions: state.productDescriptions,
         product_column_widths: state.productColumnWidths,
+        bom_column_widths: state.bomColumnWidths,
         users: state.users
       });
 

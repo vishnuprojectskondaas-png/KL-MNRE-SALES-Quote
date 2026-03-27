@@ -554,6 +554,114 @@ const SortableProductRow: React.FC<SortableProductRowProps> = ({
   );
 };
 
+const AutoResizeTextarea = ({ value, onChange, className, placeholder }: { value: string, onChange: (val: string) => void, className?: string, placeholder?: string }) => {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const adjustHeight = () => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+    }
+  };
+
+  useEffect(() => {
+    adjustHeight();
+  }, [value]);
+
+  return (
+    <textarea
+      ref={textareaRef}
+      className={className}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      onInput={adjustHeight}
+      rows={1}
+      placeholder={placeholder}
+      style={{ overflow: 'hidden', display: 'block' }}
+    />
+  );
+};
+
+interface SortableBOMItemProps {
+  item: BOMItem;
+  idx: number;
+  template: BOMTemplate;
+  handleUpdateTemplate: (id: string, updates: Partial<BOMTemplate>) => void;
+  columnWidths: Record<string, number>;
+}
+
+const SortableBOMItem: React.FC<SortableBOMItemProps> = ({ 
+  item, 
+  idx, 
+  template, 
+  handleUpdateTemplate,
+  columnWidths
+}) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({ id: item.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 10 : 1,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <tr ref={setNodeRef} style={style} className="hover:bg-white transition-colors group">
+      <td className="py-1.5 px-1 w-10 border-r text-center">
+        <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing p-1 text-gray-400 hover:text-gray-600">
+          <GripVertical className="w-3.5 h-3.5" />
+        </button>
+      </td>
+      <td className="py-1.5 px-1" style={{ width: columnWidths.product }}>
+        <AutoResizeTextarea 
+          className="border rounded px-2 py-1.5 w-full bg-white text-gray-800 font-medium resize-none outline-none focus:ring-1 focus:ring-red-500" 
+          value={item.product || ''} 
+          onChange={val => { 
+            const items = [...template.items]; 
+            items[idx] = { ...items[idx], product: val }; 
+            handleUpdateTemplate(template.id, { items }); 
+          }} 
+          placeholder="Product Name"
+        />
+      </td>
+      <td className="py-1.5 px-1" style={{ width: columnWidths.uom }}>
+        <input className="border rounded px-2 py-1.5 w-full bg-white outline-none focus:ring-1 focus:ring-red-500" value={item.uom || ''} onChange={e => { const items = [...template.items]; items[idx] = { ...items[idx], uom: e.target.value }; handleUpdateTemplate(template.id, { items }); }} />
+      </td>
+      <td className="py-1.5 px-1" style={{ width: columnWidths.quantity }}>
+        <input className="border rounded px-2 py-1.5 w-full bg-white font-bold outline-none focus:ring-1 focus:ring-red-500" value={item.quantity || ''} onChange={e => { const items = [...template.items]; items[idx] = { ...items[idx], quantity: e.target.value }; handleUpdateTemplate(template.id, { items }); }} />
+      </td>
+      <td className="py-1.5 px-1" style={{ width: columnWidths.specification }}>
+        <AutoResizeTextarea 
+          className="border rounded px-2 py-1.5 w-full bg-white resize-none outline-none focus:ring-1 focus:ring-red-500" 
+          value={item.specification || ''} 
+          onChange={val => { 
+            const items = [...template.items]; 
+            items[idx] = { ...items[idx], specification: val }; 
+            handleUpdateTemplate(template.id, { items }); 
+          }} 
+          placeholder="Specification"
+        />
+      </td>
+      <td className="py-1.5 px-1" style={{ width: columnWidths.make }}>
+        <input className="border rounded px-2 py-1.5 w-full bg-white font-bold uppercase text-[10px] outline-none focus:ring-1 focus:ring-red-500" value={item.make || ''} onChange={e => { const items = [...template.items]; items[idx] = { ...items[idx], make: e.target.value }; handleUpdateTemplate(template.id, { items }); }} />
+      </td>
+      <td className="py-1.5 px-1 text-right w-8">
+        <button onClick={() => { const items = template.items.filter((_, i) => i !== idx); handleUpdateTemplate(template.id, { items }); }} className="text-red-300 hover:text-red-500">
+          <Trash2 className="w-3.5 h-3.5"/>
+        </button>
+      </td>
+    </tr>
+  );
+};
+
 interface ResizableHeaderProps {
   label: string;
   width: number;
@@ -638,6 +746,20 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
     }
   };
 
+  const handleBOMDragEnd = (templateId: string, event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      const template = templatesList.find(t => t.id === templateId);
+      if (!template) return;
+      
+      const oldIndex = template.items.findIndex((item) => item.id === active.id);
+      const newIndex = template.items.findIndex((item) => item.id === over.id);
+      
+      const newItems = arrayMove(template.items, oldIndex, newIndex);
+      handleUpdateTemplate(templateId, { items: newItems });
+    }
+  };
+
   const updateProductDesc = (id: string, updates: Partial<ProductDescription>) => {
     updateSub('productDescriptions', productsList.map(p => p.id === id ? { ...p, ...updates } : p));
   };
@@ -647,6 +769,11 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
     updateSub('productColumnWidths', { ...currentWidths, [col]: width });
   };
 
+  const updateBomColumnWidth = (col: string, width: number) => {
+    const currentWidths = state.bomColumnWidths || INITIAL_STATE.bomColumnWidths || {};
+    updateSub('bomColumnWidths', { ...currentWidths, [col]: width });
+  };
+
   const columnWidths = state.productColumnWidths || INITIAL_STATE.productColumnWidths || {
     name: 300,
     projectType: 150,
@@ -654,6 +781,14 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
     panelType: 150,
     pricing: 150,
     bom: 150
+  };
+
+  const bomColumnWidths = state.bomColumnWidths || INITIAL_STATE.bomColumnWidths || {
+    product: 200,
+    uom: 80,
+    quantity: 80,
+    specification: 250,
+    make: 150
   };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -975,13 +1110,18 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
         };
 
         // Group rows by Template Name
-        const templatesMap: Record<string, BOMItem[]> = {};
+        const templatesMap: Record<string, { items: BOMItem[], projectType?: ProjectType, structureType?: StructureType, panelType?: PanelType }> = {};
         excelData.forEach((row: any) => {
           const templateName = getVal(row, 'Template Name') || 'Imported BOM Template';
           if (!templatesMap[templateName]) {
-            templatesMap[templateName] = [];
+            templatesMap[templateName] = {
+              items: [],
+              projectType: getVal(row, 'Project Type') as ProjectType,
+              structureType: getVal(row, 'Structure Type') as StructureType,
+              panelType: getVal(row, 'Panel Type') as PanelType
+            };
           }
-          templatesMap[templateName].push({
+          templatesMap[templateName].items.push({
             id: Math.random().toString(36).substr(2, 9),
             product: getVal(row, 'Product Component', 'Product') || '',
             uom: getVal(row, 'UOM') || '',
@@ -991,10 +1131,13 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
           });
         });
 
-        const newTemplates: BOMTemplate[] = Object.entries(templatesMap).map(([name, items]) => ({
+        const newTemplates: BOMTemplate[] = Object.entries(templatesMap).map(([name, data]) => ({
           id: Math.random().toString(36).substr(2, 9),
           name: name,
-          items: items
+          items: data.items,
+          projectType: data.projectType,
+          structureType: data.structureType,
+          panelType: data.panelType
         }));
 
         if (confirm(`Import ${newTemplates.length} BOM templates with total ${excelData.length} components? This will append to existing list.`)) {
@@ -1117,10 +1260,28 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
     XLSX.writeFile(wb, "Solar_Terms_Import_Sample.xlsx");
   };
 
+  const handleExportFilteredTerms = () => {
+    const exportData = filteredTerms.map(t => ({
+      'Term Text': t.text,
+      'Project Type': t.projectType,
+      'Structure Type': t.structureType,
+      'Panel Type': t.panelType,
+      'Enabled': t.enabled ? 'True' : 'False'
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Filtered_Terms");
+    XLSX.writeFile(wb, `Solar_Terms_Export_${filterProjectType}_${filterStructureType}_${filterPanelType}.xlsx`);
+  };
+
   const downloadSampleBOMExcel = () => {
     const sampleData = [
       {
         'Template Name': '3kW Sample BOM',
+        'Project Type': 'Ongrid Subsidy',
+        'Structure Type': '2 Meter Flat Roof Structure',
+        'Panel Type': 'TOPCON G12R',
         'Product Component': 'Solar Panels',
         'UOM': 'Nos',
         'Qty': '8',
@@ -1129,6 +1290,9 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
       },
       {
         'Template Name': '3kW Sample BOM',
+        'Project Type': 'Ongrid Subsidy',
+        'Structure Type': '2 Meter Flat Roof Structure',
+        'Panel Type': 'TOPCON G12R',
         'Product Component': 'On-Grid Inverter',
         'UOM': 'No',
         'Qty': '1',
@@ -1182,7 +1346,14 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
   const handleCreateTemplate = () => {
     const currentTemplates = state.bomTemplates || [];
     const newId = Date.now().toString();
-    const newTemplate: BOMTemplate = { id: newId, name: 'New BOM Template', items: [] };
+    const newTemplate: BOMTemplate = { 
+      id: newId, 
+      name: 'New BOM Template', 
+      items: [],
+      projectType: filterProjectType !== 'All' ? filterProjectType as ProjectType : 'Ongrid Subsidy',
+      structureType: filterStructureType !== 'All' ? filterStructureType as StructureType : '2 Meter Flat Roof Structure',
+      panelType: filterPanelType !== 'All' ? filterPanelType as PanelType : 'TOPCON G12R'
+    };
     updateSub('bomTemplates', [...currentTemplates, newTemplate]);
     setExpandedTemplateId(newId);
   };
@@ -1220,9 +1391,13 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
     return ptMatch && stMatch && paMatch;
   });
 
-  const filteredBOMTemplates = templatesList.filter(t => 
-    t.name.toLowerCase().includes(bomSearch.toLowerCase())
-  );
+  const filteredBOMTemplates = templatesList.filter(t => {
+    const ptMatch = filterProjectType === 'All' || (t.projectType || 'Ongrid Subsidy') === filterProjectType;
+    const stMatch = filterStructureType === 'All' || (t.structureType || '2 Meter Flat Roof Structure') === filterStructureType;
+    const paMatch = filterPanelType === 'All' || (t.panelType || 'TOPCON G12R') === filterPanelType;
+    const searchMatch = (t.name || '').toLowerCase().includes(bomSearch.toLowerCase());
+    return ptMatch && stMatch && paMatch && searchMatch;
+  });
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden relative">
@@ -1252,45 +1427,44 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
                <span className="text-xs font-black uppercase text-gray-400">View Filters:</span>
              </div>
              
-             {activeSubTab !== 'bom' ? (
-               <>
-                 <select 
-                   className="text-xs font-bold border rounded p-1.5 bg-white outline-none focus:ring-1 focus:ring-red-500"
-                   value={filterProjectType}
-                   onChange={e => setFilterProjectType(e.target.value)}
-                 >
-                   <option value="All">All Project Types</option>
-                   {PROJECT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                 </select>
-                 <select 
-                   className="text-xs font-bold border rounded p-1.5 bg-white outline-none focus:ring-1 focus:ring-red-500"
-                   value={filterStructureType}
-                   onChange={e => setFilterStructureType(e.target.value)}
-                 >
-                   <option value="All">All Structure Types</option>
-                   {STRUCTURE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                 </select>
-                 <select 
-                   className="text-xs font-bold border rounded p-1.5 bg-white outline-none focus:ring-1 focus:ring-red-500"
-                   value={filterPanelType}
-                   onChange={e => setFilterPanelType(e.target.value)}
-                 >
-                   <option value="All">All Panel Types</option>
-                   {PANEL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                 </select>
-               </>
-             ) : (
-               <div className="relative flex-1 md:max-w-sm">
-                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-                 <input 
-                   type="text" 
-                   placeholder="Search templates by name..."
-                   value={bomSearch}
-                   onChange={e => setBomSearch(e.target.value)}
-                   className="pl-8 pr-4 py-1.5 w-full bg-white border rounded text-xs font-bold outline-none focus:ring-1 focus:ring-red-500"
-                 />
-               </div>
-             )}
+             <>
+               <select 
+                 className="text-xs font-bold border rounded p-1.5 bg-white outline-none focus:ring-1 focus:ring-red-500"
+                 value={filterProjectType}
+                 onChange={e => setFilterProjectType(e.target.value)}
+               >
+                 <option value="All">All Project Types</option>
+                 {PROJECT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+               </select>
+               <select 
+                 className="text-xs font-bold border rounded p-1.5 bg-white outline-none focus:ring-1 focus:ring-red-500"
+                 value={filterStructureType}
+                 onChange={e => setFilterStructureType(e.target.value)}
+               >
+                 <option value="All">All Structure Types</option>
+                 {STRUCTURE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+               </select>
+               <select 
+                 className="text-xs font-bold border rounded p-1.5 bg-white outline-none focus:ring-1 focus:ring-red-500"
+                 value={filterPanelType}
+                 onChange={e => setFilterPanelType(e.target.value)}
+               >
+                 <option value="All">All Panel Types</option>
+                 {PANEL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+               </select>
+               {activeSubTab === 'bom' && (
+                 <div className="relative flex-1 md:max-w-sm">
+                   <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                   <input 
+                     type="text" 
+                     placeholder="Search templates by name..."
+                     value={bomSearch}
+                     onChange={e => setBomSearch(e.target.value)}
+                     className="pl-8 pr-4 py-1.5 w-full bg-white border rounded text-xs font-bold outline-none focus:ring-1 focus:ring-red-500"
+                   />
+                 </div>
+               )}
+             </>
 
              <button 
                onClick={() => { setFilterProjectType('All'); setFilterStructureType('All'); setFilterPanelType('All'); setBomSearch(''); }}
@@ -1640,6 +1814,12 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
                 >
                   <DownloadCloud className="w-4 h-4" /> Sample Excel
                 </button>
+                <button 
+                  onClick={handleExportFilteredTerms} 
+                  className="flex-1 md:flex-none border border-green-300 bg-green-50 text-green-700 px-4 py-2 rounded text-xs font-black uppercase flex items-center justify-center gap-2 hover:bg-green-100 transition-colors shadow-sm"
+                >
+                  <DownloadCloud className="w-4 h-4" /> Export Filtered
+                </button>
                 <label className="flex-1 md:flex-none bg-blue-600 text-white px-4 py-2 rounded text-xs font-black uppercase flex items-center justify-center gap-2 cursor-pointer hover:bg-blue-700 transition-colors shadow-md shadow-blue-100">
                   <Upload className="w-4 h-4" /> Bulk Import
                   <input ref={termsFileInputRef} type="file" accept=".xlsx, .xls" className="hidden" onChange={handleBulkImportTerms} />
@@ -1807,7 +1987,19 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
                 <div key={template.id} className="border rounded-lg bg-gray-50 overflow-hidden shadow-sm border-gray-100">
                   <div className="p-4 flex items-center gap-4 bg-white border-b">
                     <button onClick={() => setExpandedTemplateId(expandedTemplateId === template.id ? null : template.id)} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">{expandedTemplateId === template.id ? <ChevronUp className="w-5 h-5 text-gray-400"/> : <ChevronDown className="w-5 h-5 text-gray-400"/>}</button>
-                    <input className="font-bold text-[11px] uppercase tracking-wider flex-1 border-b border-transparent focus:border-red-600 outline-none text-gray-900" value={template.name || ''} onChange={e => handleUpdateTemplate(template.id, { name: e.target.value })} />
+                    <AutoResizeTextarea 
+                      className="font-bold text-[11px] uppercase tracking-wider flex-1 border-b border-transparent focus:border-red-600 outline-none text-gray-900 bg-transparent resize-none min-h-[1.5rem] py-1 w-full" 
+                      value={template.name || ''} 
+                      onChange={val => handleUpdateTemplate(template.id, { name: val })}
+                      placeholder="Template Name"
+                    />
+                    
+                    <div className="flex items-center gap-2">
+                      <select className="text-[9px] font-bold border rounded p-1 bg-white" value={template.projectType || 'Ongrid Subsidy'} onChange={e => handleUpdateTemplate(template.id, { projectType: e.target.value as ProjectType })}>{PROJECT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select>
+                      <select className="text-[9px] font-bold border rounded p-1 bg-white" value={template.structureType || '2 Meter Flat Roof Structure'} onChange={e => handleUpdateTemplate(template.id, { structureType: e.target.value as StructureType })}>{STRUCTURE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select>
+                      <select className="text-[9px] font-bold border rounded p-1 bg-white" value={template.panelType || 'TOPCON G12R'} onChange={e => handleUpdateTemplate(template.id, { panelType: e.target.value as PanelType })}>{PANEL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select>
+                    </div>
+
                     <div className="flex items-center gap-2">
                       <button onClick={() => { 
                         const newId = Date.now().toString(); 
@@ -1820,21 +2012,42 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
                   </div>
                   {expandedTemplateId === template.id && (
                     <div className="p-4 border-t overflow-x-auto bg-gray-50/50">
-                      <table className="w-full text-xs text-gray-700">
-                        <thead><tr className="text-left font-black text-[9px] uppercase tracking-widest text-gray-400 border-b"><th className="pb-3 px-1">Product Component</th><th className="pb-3 px-1">UOM</th><th className="pb-3 px-1">Qty</th><th className="pb-3 px-1">Specification</th><th className="pb-3 px-1">Make / Brand</th><th className="pb-3 px-1 w-8"></th></tr></thead>
-                        <tbody className="divide-y divide-gray-100">
-                          {(template.items || []).map((item, idx) => (
-                            <tr key={item.id} className="hover:bg-white transition-colors">
-                              <td className="py-1.5 px-1"><input className="border rounded px-2 py-1.5 w-full bg-white text-gray-800 font-medium" value={item.product || ''} onChange={e => { const items = [...template.items]; items[idx] = { ...items[idx], product: e.target.value }; handleUpdateTemplate(template.id, { items }); }} /></td>
-                              <td className="py-1.5 px-1"><input className="border rounded px-2 py-1.5 w-20 bg-white" value={item.uom || ''} onChange={e => { const items = [...template.items]; items[idx] = { ...items[idx], uom: e.target.value }; handleUpdateTemplate(template.id, { items }); }} /></td>
-                              <td className="py-1.5 px-1"><input className="border rounded px-2 py-1.5 w-16 bg-white font-bold" value={item.quantity || ''} onChange={e => { const items = [...template.items]; items[idx] = { ...items[idx], quantity: e.target.value }; handleUpdateTemplate(template.id, { items }); }} /></td>
-                              <td className="py-1.5 px-1"><input className="border rounded px-2 py-1.5 w-full bg-white" value={item.specification || ''} onChange={e => { const items = [...template.items]; items[idx] = { ...items[idx], specification: e.target.value }; handleUpdateTemplate(template.id, { items }); }} /></td>
-                              <td className="py-1.5 px-1"><input className="border rounded px-2 py-1.5 w-full bg-white font-bold uppercase text-[10px]" value={item.make || ''} onChange={e => { const items = [...template.items]; items[idx] = { ...items[idx], make: e.target.value }; handleUpdateTemplate(template.id, { items }); }} /></td>
-                              <td className="py-1.5 px-1 text-right"><button onClick={() => { const items = template.items.filter((_, i) => i !== idx); handleUpdateTemplate(template.id, { items }); }} className="text-red-300 hover:text-red-500"><Trash2 className="w-3.5 h-3.5"/></button></td>
+                      <DndContext 
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        onDragEnd={(event) => handleBOMDragEnd(template.id, event)}
+                      >
+                        <table className="w-full text-xs text-gray-700">
+                          <thead>
+                            <tr className="text-left font-black text-[9px] uppercase tracking-widest text-gray-400 border-b">
+                              <th className="w-10 border-r"></th>
+                              <ResizableHeader label="Product Component" width={bomColumnWidths.product} onResize={(w) => updateBomColumnWidth('product', w)} />
+                              <ResizableHeader label="UOM" width={bomColumnWidths.uom} onResize={(w) => updateBomColumnWidth('uom', w)} />
+                              <ResizableHeader label="Qty" width={bomColumnWidths.quantity} onResize={(w) => updateBomColumnWidth('quantity', w)} />
+                              <ResizableHeader label="Specification" width={bomColumnWidths.specification} onResize={(w) => updateBomColumnWidth('specification', w)} />
+                              <ResizableHeader label="Make / Brand" width={bomColumnWidths.make} onResize={(w) => updateBomColumnWidth('make', w)} />
+                              <th className="pb-3 px-1 w-8"></th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100">
+                            <SortableContext 
+                              items={(template.items || []).map(item => item.id)}
+                              strategy={verticalListSortingStrategy}
+                            >
+                              {(template.items || []).map((item, idx) => (
+                                <SortableBOMItem 
+                                  key={item.id}
+                                  item={item}
+                                  idx={idx}
+                                  template={template}
+                                  handleUpdateTemplate={handleUpdateTemplate}
+                                  columnWidths={bomColumnWidths}
+                                />
+                              ))}
+                            </SortableContext>
+                          </tbody>
+                        </table>
+                      </DndContext>
                       <button onClick={() => handleUpdateTemplate(template.id, { items: [...(template.items || []), { id: Date.now().toString(), product: '', uom: '', quantity: '', specification: '', make: '' }] })} className="text-[10px] font-black uppercase text-red-600 mt-4 flex items-center gap-1 hover:bg-red-50 px-3 py-1.5 rounded-full transition-colors border border-red-100 shadow-sm"><Plus className="w-3 h-3"/> Add Item Row</button>
                     </div>
                   )}
