@@ -7,7 +7,7 @@ interface Props {
   currentUser: User;
   editData: Quotation | null;
   onSave: (q: Quotation) => void;
-  onSaveTemplate: (name: string, items: BOMItem[]) => void;
+  onSaveTemplate: (name: string, items: BOMItem[], projectType?: ProjectType, structureType?: StructureType, panelType?: PanelType) => void;
   onCancel: () => void;
 }
 
@@ -337,6 +337,26 @@ const QuotationForm: React.FC<Props> = ({ state, currentUser, editData, onSave, 
         <section>
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
             <h3 className="text-sm font-bold uppercase tracking-wider text-gray-400">Bill of Materials</h3>
+            {formData.bom && formData.bom.length > 0 && (
+              <button 
+                type="button"
+                onClick={() => {
+                  const templateName = prompt("Enter a name for this BOM template:");
+                  if (templateName) {
+                    onSaveTemplate(
+                      templateName, 
+                      formData.bom, 
+                      formData.projectType as ProjectType, 
+                      formData.structureType as StructureType, 
+                      formData.panelType as PanelType
+                    );
+                  }
+                }}
+                className="text-[10px] font-black uppercase flex items-center gap-2 bg-blue-50 text-blue-600 px-4 py-2 rounded-lg border border-blue-100 hover:bg-blue-100 transition-colors shadow-sm"
+              >
+                <Package className="w-4 h-4" /> Save as Template
+              </button>
+            )}
           </div>
           <div className="overflow-x-auto border rounded-lg bg-gray-50/50">
             <table className="min-w-full divide-y divide-gray-200">

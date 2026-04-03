@@ -102,31 +102,36 @@ const App: React.FC = () => {
     }
   };
 
-  const handleSaveTemplate = (name: string, items: BOMItem[]) => {
+  const handleSaveTemplate = (name: string, items: BOMItem[], projectType?: ProjectType, structureType?: StructureType, panelType?: PanelType) => {
     const newTemplate: BOMTemplate = {
       id: Date.now().toString(),
       name,
-      items
+      items,
+      projectType,
+      structureType,
+      panelType
     };
-    const newState = {
-      ...state,
-      bomTemplates: [...(state.bomTemplates || []), newTemplate]
-    };
-    setState(newState);
-    saveSettingsToLocal(newState);
+    updateSettingsState(prev => ({
+      ...prev,
+      bomTemplates: [...(prev.bomTemplates || []), newTemplate]
+    }));
     alert(`BOM saved as template: ${name}`);
   };
 
+  const [isSaving, setIsSaving] = useState(false);
+  const saveQueue = useRef<Promise<any>>(Promise.resolve());
+
   const handleSettingsUpdate = async (newState: AppState) => {
     setState(newState);
-    await saveSettingsToLocal(newState);
+    saveQueue.current = saveQueue.current.then(() => saveSettingsToLocal(newState));
+    await saveQueue.current;
   };
 
   // Helper for functional updates to settings
   const updateSettingsState = (updater: (prev: AppState) => AppState) => {
     setState(prev => {
       const next = updater(prev);
-      saveSettingsToLocal(next);
+      saveQueue.current = saveQueue.current.then(() => saveSettingsToLocal(next));
       return next;
     });
   };
@@ -756,7 +761,7 @@ const SettingsView: React.FC<{
         ...item,
         order: index + 1
       }));
-      updateSub('productDescriptions', newProducts);
+      updateSub('productDescriptions', (prev: ProductDescription[]) => newProducts);
     }
   };
 
@@ -841,14 +846,12 @@ const SettingsView: React.FC<{
       alert("Please fill all required user fields");
       return;
     }
-    const currentUsers = state.users || [];
     if (editingUserId) {
-        const updatedUsers = currentUsers.map(u => 
+        updateSub('users', (prev: User[]) => (prev || []).map(u => 
             u.id === editingUserId 
             ? { ...u, name: newUser.name!, username: newUser.username!, password: newUser.password!, role: (newUser.role as UserRole) || 'user', salesPersonName: newUser.salesPersonName, salesPersonMobile: newUser.salesPersonMobile }
             : u
-        );
-        updateSub('users', updatedUsers);
+        ));
         setEditingUserId(null);
     } else {
         const user: User = {
@@ -860,7 +863,7 @@ const SettingsView: React.FC<{
           salesPersonName: newUser.salesPersonName,
           salesPersonMobile: newUser.salesPersonMobile
         };
-        updateSub('users', [...currentUsers, user]);
+        updateSub('users', (prev: User[]) => [...(prev || []), user]);
     }
     setNewUser({ role: 'user', name: '', username: '', password: '', salesPersonName: '', salesPersonMobile: '' });
   };
@@ -871,18 +874,18 @@ const SettingsView: React.FC<{
   };
 
   const handleDeleteUser = (id: string) => {
-    const currentUsers = state.users || [];
-    if(currentUsers.length <= 1) {
-      alert("Cannot delete the last user");
-      return;
-    }
     if(confirm("Delete this user?")) {
-      updateSub('users', currentUsers.filter(u => u.id !== id));
+      updateSub('users', (prev: User[]) => {
+        if((prev || []).length <= 1) {
+          alert("Cannot delete the last user");
+          return prev;
+        }
+        return (prev || []).filter(u => u.id !== id);
+      });
     }
   };
 
   const handleAddPricing = () => {
-    const currentPricing = state.productPricing || [];
     const newId = Date.now().toString();
     const newItem: ProductPricing = {
       id: newId,
@@ -898,17 +901,15 @@ const SettingsView: React.FC<{
       customizedStructureCost: 0,
       netMeterCost: 0
     };
-    updateSub('productPricing', [...currentPricing, newItem]);
+    updateSub('productPricing', (prev: ProductPricing[]) => [...(prev || []), newItem]);
     setEditingItemId(newId);
   };
 
   const updatePricingItem = (id: string, updates: Partial<ProductPricing>) => {
-    const currentPricing = state.productPricing || [];
-    updateSub('productPricing', currentPricing.map(p => p.id === id ? { ...p, ...updates } : p));
+    updateSub('productPricing', (prev: ProductPricing[]) => (prev || []).map(p => p.id === id ? { ...p, ...updates } : p));
   };
 
   const handleAddWarranty = () => {
-    const currentWarranties = state.warrantyPackages || [];
     const newId = Date.now().toString();
     const newPackage: WarrantyPackage = {
       id: newId,
@@ -921,35 +922,32 @@ const SettingsView: React.FC<{
       systemWarranty: '',
       monitoringSystem: ''
     };
-    updateSub('warrantyPackages', [...currentWarranties, newPackage]);
+    updateSub('warrantyPackages', (prev: WarrantyPackage[]) => [...(prev || []), newPackage]);
     setEditingItemId(newId);
   };
 
   const handleCopyWarranty = (w: WarrantyPackage) => {
-    const currentWarranties = state.warrantyPackages || [];
     const newId = Date.now().toString();
     const copiedPackage: WarrantyPackage = {
       ...w,
       id: newId
     };
-    updateSub('warrantyPackages', [...currentWarranties, copiedPackage]);
+    updateSub('warrantyPackages', (prev: WarrantyPackage[]) => [...(prev || []), copiedPackage]);
     setEditingItemId(newId);
     alert('Warranty package duplicated successfully');
   };
 
   const updateWarrantyPackage = (id: string, updates: Partial<WarrantyPackage>) => {
-    const currentWarranties = state.warrantyPackages || [];
-    updateSub('warrantyPackages', currentWarranties.map(w => w.id === id ? { ...w, ...updates } : w));
+    updateSub('warrantyPackages', (prev: WarrantyPackage[]) => (prev || []).map(w => w.id === id ? { ...w, ...updates } : w));
   };
 
   const handleCopyTerm = (term: Term) => {
-    const currentTerms = state.terms || [];
     const newId = Date.now().toString();
     const copiedTerm: Term = {
       ...term,
       id: newId
     };
-    updateSub('terms', [...currentTerms, copiedTerm]);
+    updateSub('terms', (prev: Term[]) => [...(prev || []), copiedTerm]);
     alert('Term copied successfully');
   };
 
@@ -998,7 +996,7 @@ const SettingsView: React.FC<{
         }));
 
         if (confirm(`Import ${newPricingList.length} pricing packages? This will append to existing list.`)) {
-          updateSub('productPricing', [...(state.productPricing || []), ...newPricingList]);
+          updateSub('productPricing', (prev: ProductPricing[]) => [...(prev || []), ...newPricingList]);
         }
       } catch (error) {
         console.error("Bulk import failed:", error);
@@ -1048,7 +1046,7 @@ const SettingsView: React.FC<{
         }));
 
         if (confirm(`Import ${newProductList.length} product specifications? This will append to existing list.`)) {
-          updateSub('productDescriptions', [...(state.productDescriptions || []), ...newProductList]);
+          updateSub('productDescriptions', (prev: ProductDescription[]) => [...(prev || []), ...newProductList]);
         }
       } catch (error) {
         console.error("Bulk import failed:", error);
@@ -1098,7 +1096,7 @@ const SettingsView: React.FC<{
         }));
 
         if (confirm(`Import ${newTerms.length} terms? This will append to existing list.`)) {
-          updateSub('terms', [...(state.terms || []), ...newTerms]);
+          updateSub('terms', (prev: Term[]) => [...(prev || []), ...newTerms]);
         }
       } catch (error) {
         console.error("Bulk import failed:", error);
@@ -1169,7 +1167,7 @@ const SettingsView: React.FC<{
         }));
 
         if (confirm(`Import ${newTemplates.length} BOM templates with total ${excelData.length} components? This will append to existing list.`)) {
-          updateSub('bomTemplates', [...(state.bomTemplates || []), ...newTemplates]);
+          updateSub('bomTemplates', (prev: BOMTemplate[]) => [...(prev || []), ...newTemplates]);
         }
       } catch (error) {
         console.error("Bulk BOM import failed:", error);
@@ -1221,7 +1219,7 @@ const SettingsView: React.FC<{
         }));
 
         if (confirm(`Import ${newWarranties.length} warranty declarations? This will append to existing list.`)) {
-          updateSub('warrantyPackages', [...(state.warrantyPackages || []), ...newWarranties]);
+          updateSub('warrantyPackages', (prev: WarrantyPackage[]) => [...(prev || []), ...newWarranties]);
         }
       } catch (error) {
         console.error("Bulk Warranty import failed:", error);
@@ -1356,7 +1354,6 @@ const SettingsView: React.FC<{
   };
 
   const handleAddProduct = () => {
-    const currentProducts = state.productDescriptions || [];
     const newId = Date.now().toString();
     const newProduct: ProductDescription = {
       id: newId,
@@ -1367,12 +1364,11 @@ const SettingsView: React.FC<{
       defaultPricingId: '',
       defaultBomTemplateId: ''
     };
-    updateSub('productDescriptions', [...currentProducts, newProduct]);
+    updateSub('productDescriptions', (prev: ProductDescription[]) => [...(prev || []), newProduct]);
     setExpandedProductId(newId);
   };
 
   const handleCreateTemplate = () => {
-    const currentTemplates = state.bomTemplates || [];
     const newId = Date.now().toString();
     const newTemplate: BOMTemplate = { 
       id: newId, 
@@ -1382,7 +1378,7 @@ const SettingsView: React.FC<{
       structureType: filterStructureType !== 'All' ? filterStructureType as StructureType : '2 Meter Flat Roof Structure',
       panelType: filterPanelType !== 'All' ? filterPanelType as PanelType : 'TOPCON G12R'
     };
-    updateSub('bomTemplates', [...currentTemplates, newTemplate]);
+    updateSub('bomTemplates', (prev: BOMTemplate[]) => [...(prev || []), newTemplate]);
     setExpandedTemplateId(newId);
   };
 
@@ -1517,7 +1513,7 @@ const SettingsView: React.FC<{
                         const file = e.target.files?.[0];
                         if (file) {
                           const reader = new FileReader();
-                          reader.onloadend = () => updateSub('company', { ...state.company, logo: reader.result as string });
+                          reader.onloadend = () => updateSub('company', (prev: any) => ({ ...prev, logo: reader.result as string }));
                           reader.readAsDataURL(file);
                         }
                       }} />
@@ -1533,7 +1529,7 @@ const SettingsView: React.FC<{
                         const file = e.target.files?.[0];
                         if (file) {
                           const reader = new FileReader();
-                          reader.onloadend = () => updateSub('company', { ...state.company, seal: reader.result as string });
+                          reader.onloadend = () => updateSub('company', (prev: any) => ({ ...prev, seal: reader.result as string }));
                           reader.readAsDataURL(file);
                         }
                       }} />
@@ -1726,7 +1722,7 @@ const SettingsView: React.FC<{
                           <button 
                             onClick={() => {
                               const newId = Date.now().toString();
-                              updateSub('productPricing', [...pricingList, { ...p, id: newId, name: `${p.name} (Copy)` }]);
+                              updateSub('productPricing', (prev: ProductPricing[]) => [...(prev || []), { ...p, id: newId, name: `${p.name} (Copy)` }]);
                             }}
                             className="p-1.5 text-blue-500 hover:bg-blue-50 rounded transition-colors"
                             title="Duplicate"
@@ -1736,7 +1732,7 @@ const SettingsView: React.FC<{
                           <button 
                             onClick={() => {
                               if(confirm('Delete this pricing package?')) {
-                                updateSub('productPricing', pricingList.filter(item => item.id !== p.id));
+                                updateSub('productPricing', (prev: ProductPricing[]) => (prev || []).filter(item => item.id !== p.id));
                               }
                             }}
                             className="p-1.5 text-red-400 hover:bg-red-50 rounded transition-colors"
@@ -1853,11 +1849,11 @@ const SettingsView: React.FC<{
                   <Upload className="w-4 h-4" /> Bulk Import
                   <input ref={termsFileInputRef} type="file" accept=".xlsx, .xls" className="hidden" onChange={handleBulkImportTerms} />
                 </label>
-                <button onClick={() => updateSub('terms', [...termsList, { 
+                <button onClick={() => updateSub('terms', (prev: Term[]) => [...(prev || []), { 
                   id: Date.now().toString(), 
                   text: 'New Term', 
                   enabled: true, 
-                  order: termsList.length + 1,
+                  order: (prev || []).length + 1,
                   projectType: filterProjectType !== 'All' ? filterProjectType as ProjectType : 'Ongrid Subsidy',
                   structureType: filterStructureType !== 'All' ? filterStructureType as StructureType : '2 Meter Flat Roof Structure',
                   panelType: filterPanelType !== 'All' ? filterPanelType as PanelType : 'TOPCON G12R'
@@ -1880,7 +1876,7 @@ const SettingsView: React.FC<{
                   <div className="flex items-start gap-4">
                     <textarea 
                       value={term.text || ''} 
-                      onChange={e => updateSub('terms', termsList.map(t => t.id === term.id ? { ...t, text: e.target.value } : t))} 
+                      onChange={e => updateSub('terms', (prev: Term[]) => (prev || []).map(t => t.id === term.id ? { ...t, text: e.target.value } : t))} 
                       className="flex-1 border-gray-100 bg-gray-50/30 rounded-lg focus:ring-red-500 focus:border-red-500 p-3 text-sm font-medium leading-relaxed outline-none transition-all" 
                       rows={2} 
                     />
@@ -1888,18 +1884,22 @@ const SettingsView: React.FC<{
                       <input 
                         type="checkbox" 
                         checked={term.enabled} 
-                        onChange={e => updateSub('terms', termsList.map(t => t.id === term.id ? { ...t, enabled: e.target.checked } : t))} 
+                        onChange={e => updateSub('terms', (prev: Term[]) => (prev || []).map(t => t.id === term.id ? { ...t, enabled: e.target.checked } : t))} 
                         className="w-5 h-5 accent-red-600 rounded cursor-pointer shadow-sm" 
                         title="Enable/Disable Term"
                       />
                       <button onClick={() => handleCopyTerm(term)} className="text-blue-500 hover:text-blue-700 transition-colors" title="Copy Term"><Copy className="w-4 h-4" /></button>
-                      <button onClick={() => updateSub('terms', termsList.filter(t => t.id !== term.id))} className="text-red-400 hover:text-red-600 transition-colors" title="Delete Term"><Trash2 className="w-4 h-4" /></button>
+                      <button onClick={() => {
+                        if (confirm('Delete this term?')) {
+                          updateSub('terms', (prev: Term[]) => (prev || []).filter(t => t.id !== term.id));
+                        }
+                      }} className="text-red-400 hover:text-red-600 transition-colors" title="Delete Term"><Trash2 className="w-4 h-4" /></button>
                     </div>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
-                    <select className="text-[9px] font-bold border rounded p-1.5 bg-white" value={term.projectType || 'Ongrid Subsidy'} onChange={e => updateSub('terms', termsList.map(t => t.id === term.id ? { ...t, projectType: e.target.value as ProjectType } : t))}>{PROJECT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select>
-                    <select className="text-[9px] font-bold border rounded p-1.5 bg-white" value={term.structureType || '2 Meter Flat Roof Structure'} onChange={e => updateSub('terms', termsList.map(t => t.id === term.id ? { ...t, structureType: e.target.value as StructureType } : t))}>{STRUCTURE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select>
-                    <select className="text-[9px] font-bold border rounded p-1.5 bg-white" value={term.panelType || 'TOPCON G12R'} onChange={e => updateSub('terms', termsList.map(t => t.id === term.id ? { ...t, panelType: e.target.value as PanelType } : t))}>{PANEL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select>
+                    <select className="text-[9px] font-bold border rounded p-1.5 bg-white" value={term.projectType || 'Ongrid Subsidy'} onChange={e => updateSub('terms', (prev: Term[]) => (prev || []).map(t => t.id === term.id ? { ...t, projectType: e.target.value as ProjectType } : t))}>{PROJECT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select>
+                    <select className="text-[9px] font-bold border rounded p-1.5 bg-white" value={term.structureType || '2 Meter Flat Roof Structure'} onChange={e => updateSub('terms', (prev: Term[]) => (prev || []).map(t => t.id === term.id ? { ...t, structureType: e.target.value as StructureType } : t))}>{STRUCTURE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select>
+                    <select className="text-[9px] font-bold border rounded p-1.5 bg-white" value={term.panelType || 'TOPCON G12R'} onChange={e => updateSub('terms', (prev: Term[]) => (prev || []).map(t => t.id === term.id ? { ...t, panelType: e.target.value as PanelType } : t))}>{PANEL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select>
                   </div>
                 </div>
               ))}
@@ -1962,7 +1962,11 @@ const SettingsView: React.FC<{
                     <div className="flex gap-2">
                       <button onClick={() => handleCopyWarranty(w)} className="text-xs font-black uppercase px-3 py-1.5 rounded border border-blue-100 bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors shadow-sm flex items-center gap-1.5" title="Copy Declaration"><Copy className="w-3.5 h-3.5" /> Copy</button>
                       <button onClick={() => setEditingItemId(editingItemId === w.id ? null : w.id)} className={`text-xs font-black uppercase px-4 py-1.5 rounded border transition-colors shadow-sm ${editingItemId === w.id ? 'bg-black text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>{editingItemId === w.id ? 'Close' : 'Edit Declaration'}</button>
-                      <button onClick={() => updateSub('warrantyPackages', warrantiesList.filter(item => item.id !== w.id))} className="text-red-400 hover:text-red-600 p-1"><Trash2 className="w-4 h-4" /> </button>
+                      <button onClick={() => {
+                        if (confirm('Delete this warranty package?')) {
+                          updateSub('warrantyPackages', (prev: WarrantyPackage[]) => (prev || []).filter(item => item.id !== w.id));
+                        }
+                      }} className="text-red-400 hover:text-red-600 p-1"><Trash2 className="w-4 h-4" /> </button>
                     </div>
                   </div>
                   {editingItemId === w.id && (
@@ -2055,9 +2059,13 @@ const SettingsView: React.FC<{
                         const newId = Date.now().toString(); 
                         // Deep clone items array and items themselves to avoid shared references
                         const newItems = (template.items || []).map(item => ({ ...item, id: Math.random().toString(36).substr(2, 9) }));
-                        updateSub('bomTemplates', [...templatesList, { ...template, id: newId, name: `${template.name} (Copy)`, items: newItems }]); 
+                        updateSub('bomTemplates', (prev: BOMTemplate[]) => [...(prev || []), { ...template, id: newId, name: `${template.name} (Copy)`, items: newItems }]); 
                       }} className="text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg" title="Duplicate Template"><Copy className="w-4 h-4"/></button>
-                      <button onClick={() => updateSub('bomTemplates', templatesList.filter(t => t.id !== template.id))} className="text-red-400 hover:text-red-600 p-1.5 rounded-lg"><Trash2 className="w-4 h-4"/></button>
+                      <button onClick={() => {
+                        if (confirm('Delete this template?')) {
+                          updateSub('bomTemplates', (prev: BOMTemplate[]) => (prev || []).filter(t => t.id !== template.id));
+                        }
+                      }} className="text-red-400 hover:text-red-600 p-1.5 rounded-lg"><Trash2 className="w-4 h-4"/></button>
                     </div>
                   </div>
                   {expandedTemplateId === template.id && (
