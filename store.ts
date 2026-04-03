@@ -79,7 +79,14 @@ export const INITIAL_STATE: AppState = {
   warrantyPackages: DEFAULT_WARRANTIES,
   terms: DEFAULT_TERMS,
   bomTemplates: [
-    { id: '3kw-std', name: '3kW Standard On-Grid', items: DEFAULT_BOM_3KW }
+    { 
+      id: '3kw-std', 
+      name: '3kW Standard On-Grid', 
+      items: DEFAULT_BOM_3KW,
+      projectType: 'Ongrid Subsidy',
+      structureType: '2 Meter Flat Roof Structure',
+      panelType: 'TOPCON G12R'
+    }
   ],
   productDescriptions: [
     { id: '1', name: '3kW ON-GRID SOLAR POWER GENERATING SYSTEM', projectType: 'Ongrid Subsidy', structureType: '2 Meter Flat Roof Structure', panelType: 'TOPCON G12R', defaultPricingId: 'p3kw', defaultBomTemplateId: '3kw-std', order: 1 }

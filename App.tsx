@@ -122,6 +122,15 @@ const App: React.FC = () => {
     await saveSettingsToLocal(newState);
   };
 
+  // Helper for functional updates to settings
+  const updateSettingsState = (updater: (prev: AppState) => AppState) => {
+    setState(prev => {
+      const next = updater(prev);
+      saveSettingsToLocal(next);
+      return next;
+    });
+  };
+
   const editQuotation = (q: Quotation) => {
     setSelectedQuotation(q);
     setActiveTab('create');
@@ -396,6 +405,7 @@ const App: React.FC = () => {
               <SettingsView 
                 state={state} 
                 onUpdate={handleSettingsUpdate} 
+                onUpdateState={updateSettingsState}
               />
             )}
           </div>
@@ -704,7 +714,11 @@ const ResizableHeader: React.FC<ResizableHeaderProps> = ({ label, width, onResiz
   );
 };
 
-const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promise<void> }> = ({ state, onUpdate }) => {
+const SettingsView: React.FC<{ 
+  state: AppState, 
+  onUpdate: (s: AppState) => Promise<void>,
+  onUpdateState?: (updater: (prev: AppState) => AppState) => void
+}> = ({ state, onUpdate, onUpdateState }) => {
   const [activeSubTab, setActiveSubTab] = useState<'company' | 'users' | 'pricing' | 'terms' | 'bank' | 'warranty' | 'bom' | 'products'>('company');
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [expandedTemplateId, setExpandedTemplateId] = useState<string | null>(null);
@@ -761,17 +775,23 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
   };
 
   const updateProductDesc = (id: string, updates: Partial<ProductDescription>) => {
-    updateSub('productDescriptions', productsList.map(p => p.id === id ? { ...p, ...updates } : p));
+    updateSub('productDescriptions', (prev: ProductDescription[]) => 
+      (prev || []).map(p => p.id === id ? { ...p, ...updates } : p)
+    );
   };
 
   const updateColumnWidth = (col: string, width: number) => {
-    const currentWidths = state.productColumnWidths || INITIAL_STATE.productColumnWidths || {};
-    updateSub('productColumnWidths', { ...currentWidths, [col]: width });
+    updateSub('productColumnWidths', (prev: Record<string, number>) => ({
+      ...(prev || INITIAL_STATE.productColumnWidths || {}),
+      [col]: width
+    }));
   };
 
   const updateBomColumnWidth = (col: string, width: number) => {
-    const currentWidths = state.bomColumnWidths || INITIAL_STATE.bomColumnWidths || {};
-    updateSub('bomColumnWidths', { ...currentWidths, [col]: width });
+    updateSub('bomColumnWidths', (prev: Record<string, number>) => ({
+      ...(prev || INITIAL_STATE.bomColumnWidths || {}),
+      [col]: width
+    }));
   };
 
   const columnWidths = state.productColumnWidths || INITIAL_STATE.productColumnWidths || {
@@ -797,10 +817,18 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
   const bomFileInputRef = useRef<HTMLInputElement>(null);
   const warrantyFileInputRef = useRef<HTMLInputElement>(null);
 
-  const updateSub = async (key: keyof AppState, data: any) => {
+  const updateSub = async (key: keyof AppState, data: any | ((prev: any) => any)) => {
     setSaveStatus('saving');
     try {
-        await onUpdate({ ...state, [key]: data });
+        if (onUpdateState) {
+          onUpdateState(prev => {
+            const nextData = typeof data === 'function' ? data(prev[key]) : data;
+            return { ...prev, [key]: nextData };
+          });
+        } else {
+          const nextData = typeof data === 'function' ? data(state[key]) : data;
+          await onUpdate({ ...state, [key]: nextData });
+        }
         setSaveStatus('saved');
         setTimeout(() => setSaveStatus('idle'), 2000);
     } catch(e) {
@@ -1359,8 +1387,9 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
   };
 
   const handleUpdateTemplate = (id: string, updates: Partial<BOMTemplate>) => {
-    const currentTemplates = state.bomTemplates || [];
-    updateSub('bomTemplates', currentTemplates.map(t => t.id === id ? { ...t, ...updates } : t));
+    updateSub('bomTemplates', (prev: BOMTemplate[]) => 
+      (prev || []).map(t => t.id === id ? { ...t, ...updates } : t)
+    );
   };
 
   const filteredPricing = pricingList.filter(p => {
@@ -1513,14 +1542,14 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
                </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="md:col-span-2"><label className="block text-xs uppercase font-black text-gray-400 mb-1">Company Full Name</label><input value={state.company?.name || ''} onChange={e => updateSub('company', { ...state.company, name: e.target.value })} className="w-full border p-2 rounded" /></div>
-              <div className="md:col-span-2"><label className="block text-xs uppercase font-black text-gray-400 mb-1">Head Office Address</label><textarea value={state.company?.headOffice || ''} onChange={e => updateSub('company', { ...state.company, headOffice: e.target.value })} className="w-full border p-2 rounded" rows={2} /></div>
-              <div><label className="block text-xs uppercase font-black text-gray-400 mb-1">Regional Branch 1</label><input value={state.company?.regionalOffice1 || ''} onChange={e => updateSub('company', { ...state.company, regionalOffice1: e.target.value })} className="w-full border p-2 rounded" /></div>
-              <div><label className="block text-xs uppercase font-black text-gray-400 mb-1">Regional Branch 2</label><input value={state.company?.regionalOffice2 || ''} onChange={e => updateSub('company', { ...state.company, regionalOffice2: e.target.value })} className="w-full border p-2 rounded" /></div>
-              <div><label className="block text-xs uppercase font-black text-gray-400 mb-1">Website URL</label><input value={state.company?.website || ''} onChange={e => updateSub('company', { ...state.company, website: e.target.value })} className="w-full border p-2 rounded" placeholder="e.g. www.kondaas.com" /></div>
-              <div><label className="block text-xs uppercase font-black text-gray-400 mb-1">Mail ID (Email)</label><input value={state.company?.email || ''} onChange={e => updateSub('company', { ...state.company, email: e.target.value })} className="w-full border p-2 rounded" placeholder="e.g. info@kondaas.com" /></div>
-              <div><label className="block text-xs uppercase font-black text-gray-400 mb-1">GSTIN</label><input value={state.company?.gstin || ''} onChange={e => updateSub('company', { ...state.company, gstin: e.target.value })} className="w-full border p-2 rounded" /></div>
-              <div><label className="block text-xs uppercase font-black text-gray-400 mb-1">Contact Phone</label><input value={state.company?.phone || ''} onChange={e => updateSub('company', { ...state.company, phone: e.target.value })} className="w-full border p-2 rounded" /></div>
+              <div className="md:col-span-2"><label className="block text-xs uppercase font-black text-gray-400 mb-1">Company Full Name</label><input value={state.company?.name || ''} onChange={e => updateSub('company', (prev: any) => ({ ...prev, name: e.target.value }))} className="w-full border p-2 rounded" /></div>
+              <div className="md:col-span-2"><label className="block text-xs uppercase font-black text-gray-400 mb-1">Head Office Address</label><textarea value={state.company?.headOffice || ''} onChange={e => updateSub('company', (prev: any) => ({ ...prev, headOffice: e.target.value }))} className="w-full border p-2 rounded" rows={2} /></div>
+              <div><label className="block text-xs uppercase font-black text-gray-400 mb-1">Regional Branch 1</label><input value={state.company?.regionalOffice1 || ''} onChange={e => updateSub('company', (prev: any) => ({ ...prev, regionalOffice1: e.target.value }))} className="w-full border p-2 rounded" /></div>
+              <div><label className="block text-xs uppercase font-black text-gray-400 mb-1">Regional Branch 2</label><input value={state.company?.regionalOffice2 || ''} onChange={e => updateSub('company', (prev: any) => ({ ...prev, regionalOffice2: e.target.value }))} className="w-full border p-2 rounded" /></div>
+              <div><label className="block text-xs uppercase font-black text-gray-400 mb-1">Website URL</label><input value={state.company?.website || ''} onChange={e => updateSub('company', (prev: any) => ({ ...prev, website: e.target.value }))} className="w-full border p-2 rounded" placeholder="e.g. www.kondaas.com" /></div>
+              <div><label className="block text-xs uppercase font-black text-gray-400 mb-1">Mail ID (Email)</label><input value={state.company?.email || ''} onChange={e => updateSub('company', (prev: any) => ({ ...prev, email: e.target.value }))} className="w-full border p-2 rounded" placeholder="e.g. info@kondaas.com" /></div>
+              <div><label className="block text-xs uppercase font-black text-gray-400 mb-1">GSTIN</label><input value={state.company?.gstin || ''} onChange={e => updateSub('company', (prev: any) => ({ ...prev, gstin: e.target.value }))} className="w-full border p-2 rounded" /></div>
+              <div><label className="block text-xs uppercase font-black text-gray-400 mb-1">Contact Phone</label><input value={state.company?.phone || ''} onChange={e => updateSub('company', (prev: any) => ({ ...prev, phone: e.target.value }))} className="w-full border p-2 rounded" /></div>
             </div>
           </div>
         )}
@@ -1883,14 +1912,14 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
           <div className="space-y-6">
             <h3 className="text-lg font-bold">Company Remittance Details</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-              <div className="md:col-span-2"><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Beneficiary Account Name</label><input value={state.bank?.companyName || ''} onChange={e => updateSub('bank', { ...state.bank, companyName: e.target.value })} className="w-full border p-3 rounded-lg font-bold bg-white" /></div>
-              <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Bank Name</label><input value={state.bank?.bankName || ''} onChange={e => updateSub('bank', { ...state.bank, bankName: e.target.value })} className="w-full border p-3 rounded-lg bg-white" /></div>
-              <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Account Number</label><input value={state.bank?.accountNumber || ''} onChange={e => updateSub('bank', { ...state.bank, accountNumber: e.target.value })} className="w-full border p-3 rounded-lg font-black bg-white tracking-widest" /></div>
-              <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Bank Branch</label><input value={state.bank?.branch || ''} onChange={e => updateSub('bank', { ...state.bank, branch: e.target.value })} className="w-full border p-3 rounded-lg bg-white" /></div>
-              <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">IFSC Code</label><input value={state.bank?.ifsc || ''} onChange={e => updateSub('bank', { ...state.bank, ifsc: e.target.value })} className="w-full border p-3 rounded-lg font-bold text-red-600 bg-white" /></div>
-              <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">PAN Number</label><input value={state.bank?.pan || ''} onChange={e => updateSub('bank', { ...state.bank, pan: e.target.value })} className="w-full border p-3 rounded-lg bg-white font-mono" /></div>
-              <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">UPI ID for Direct Payment</label><input value={state.bank?.upiId || ''} onChange={e => updateSub('bank', { ...state.bank, upiId: e.target.value })} className="w-full border p-3 rounded-lg bg-white font-bold" /></div>
-              <div className="md:col-span-2"><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Bank Address</label><textarea value={state.bank?.address || ''} onChange={e => updateSub('bank', { ...state.bank, address: e.target.value })} className="w-full border p-3 rounded-lg bg-white" rows={2}/></div>
+              <div className="md:col-span-2"><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Beneficiary Account Name</label><input value={state.bank?.companyName || ''} onChange={e => updateSub('bank', (prev: any) => ({ ...prev, companyName: e.target.value }))} className="w-full border p-3 rounded-lg font-bold bg-white" /></div>
+              <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Bank Name</label><input value={state.bank?.bankName || ''} onChange={e => updateSub('bank', (prev: any) => ({ ...prev, bankName: e.target.value }))} className="w-full border p-3 rounded-lg bg-white" /></div>
+              <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Account Number</label><input value={state.bank?.accountNumber || ''} onChange={e => updateSub('bank', (prev: any) => ({ ...prev, accountNumber: e.target.value }))} className="w-full border p-3 rounded-lg font-black bg-white tracking-widest" /></div>
+              <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Bank Branch</label><input value={state.bank?.branch || ''} onChange={e => updateSub('bank', (prev: any) => ({ ...prev, branch: e.target.value }))} className="w-full border p-3 rounded-lg bg-white" /></div>
+              <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">IFSC Code</label><input value={state.bank?.ifsc || ''} onChange={e => updateSub('bank', (prev: any) => ({ ...prev, ifsc: e.target.value }))} className="w-full border p-3 rounded-lg font-bold text-red-600 bg-white" /></div>
+              <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">PAN Number</label><input value={state.bank?.pan || ''} onChange={e => updateSub('bank', (prev: any) => ({ ...prev, pan: e.target.value }))} className="w-full border p-3 rounded-lg bg-white font-mono" /></div>
+              <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">UPI ID for Direct Payment</label><input value={state.bank?.upiId || ''} onChange={e => updateSub('bank', (prev: any) => ({ ...prev, upiId: e.target.value }))} className="w-full border p-3 rounded-lg bg-white font-bold" /></div>
+              <div className="md:col-span-2"><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Bank Address</label><textarea value={state.bank?.address || ''} onChange={e => updateSub('bank', (prev: any) => ({ ...prev, address: e.target.value }))} className="w-full border p-3 rounded-lg bg-white" rows={2}/></div>
             </div>
           </div>
         )}
@@ -1995,9 +2024,30 @@ const SettingsView: React.FC<{ state: AppState, onUpdate: (s: AppState) => Promi
                     />
                     
                     <div className="flex items-center gap-2">
-                      <select className="text-[9px] font-bold border rounded p-1 bg-white" value={template.projectType || 'Ongrid Subsidy'} onChange={e => handleUpdateTemplate(template.id, { projectType: e.target.value as ProjectType })}>{PROJECT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select>
-                      <select className="text-[9px] font-bold border rounded p-1 bg-white" value={template.structureType || '2 Meter Flat Roof Structure'} onChange={e => handleUpdateTemplate(template.id, { structureType: e.target.value as StructureType })}>{STRUCTURE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select>
-                      <select className="text-[9px] font-bold border rounded p-1 bg-white" value={template.panelType || 'TOPCON G12R'} onChange={e => handleUpdateTemplate(template.id, { panelType: e.target.value as PanelType })}>{PANEL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select>
+                      <select 
+                        className="text-[9px] font-bold border rounded p-1 bg-white" 
+                        value={template.projectType || ''} 
+                        onChange={e => handleUpdateTemplate(template.id, { projectType: e.target.value as ProjectType })}
+                      >
+                        {!template.projectType && <option value="">Select Project Type</option>}
+                        {PROJECT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                      <select 
+                        className="text-[9px] font-bold border rounded p-1 bg-white" 
+                        value={template.structureType || ''} 
+                        onChange={e => handleUpdateTemplate(template.id, { structureType: e.target.value as StructureType })}
+                      >
+                        {!template.structureType && <option value="">Select Structure Type</option>}
+                        {STRUCTURE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                      <select 
+                        className="text-[9px] font-bold border rounded p-1 bg-white" 
+                        value={template.panelType || ''} 
+                        onChange={e => handleUpdateTemplate(template.id, { panelType: e.target.value as PanelType })}
+                      >
+                        {!template.panelType && <option value="">Select Panel Type</option>}
+                        {PANEL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                      </select>
                     </div>
 
                     <div className="flex items-center gap-2">

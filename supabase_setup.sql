@@ -27,6 +27,27 @@ begin
   if not exists (select 1 from information_schema.columns where table_name = 'settings' and column_name = 'bom_column_widths') then
     alter table settings add column bom_column_widths jsonb default '{}'::jsonb;
   end if;
+  if not exists (select 1 from information_schema.columns where table_name = 'settings' and column_name = 'bom_templates') then
+    alter table settings add column bom_templates jsonb default '[]'::jsonb;
+  end if;
+  if not exists (select 1 from information_schema.columns where table_name = 'settings' and column_name = 'product_descriptions') then
+    alter table settings add column product_descriptions jsonb default '[]'::jsonb;
+  end if;
+  if not exists (select 1 from information_schema.columns where table_name = 'settings' and column_name = 'warranty') then
+    alter table settings add column warranty jsonb default '[]'::jsonb;
+  end if;
+  if not exists (select 1 from information_schema.columns where table_name = 'settings' and column_name = 'terms') then
+    alter table settings add column terms jsonb default '[]'::jsonb;
+  end if;
+  if not exists (select 1 from information_schema.columns where table_name = 'settings' and column_name = 'pricing') then
+    alter table settings add column pricing jsonb default '[]'::jsonb;
+  end if;
+  if not exists (select 1 from information_schema.columns where table_name = 'settings' and column_name = 'company') then
+    alter table settings add column company jsonb default '{}'::jsonb;
+  end if;
+  if not exists (select 1 from information_schema.columns where table_name = 'settings' and column_name = 'bank') then
+    alter table settings add column bank jsonb default '{}'::jsonb;
+  end if;
 end $$;
 
 -- 3. Enable Security
