@@ -82,10 +82,7 @@ export const INITIAL_STATE: AppState = {
     { 
       id: '3kw-std', 
       name: '3kW Standard On-Grid', 
-      items: DEFAULT_BOM_3KW,
-      projectType: 'Ongrid Subsidy',
-      structureType: '2 Meter Flat Roof Structure',
-      panelType: 'TOPCON G12R'
+      items: DEFAULT_BOM_3KW
     }
   ],
   productDescriptions: [

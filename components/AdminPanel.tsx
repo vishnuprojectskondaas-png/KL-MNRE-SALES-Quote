@@ -15,6 +15,7 @@ interface Props {
 
 const AdminPanel: React.FC<Props> = ({ state, currentUser, onEdit, onPrint, onDownload, onDelete }) => {
   const [searchTerm, setSearchTerm] = React.useState('');
+  const [confirmingDeleteId, setConfirmingDeleteId] = React.useState<string | null>(null);
 
   const isAdmin = currentUser.role === 'admin';
   const canModifyQuotes = currentUser.role === 'admin' || currentUser.role === 'TL';
@@ -147,11 +148,22 @@ const AdminPanel: React.FC<Props> = ({ state, currentUser, onEdit, onPrint, onDo
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-black text-gray-900">₹ {finalTotal.toLocaleString('en-IN')}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-1">
+                    <div className="flex items-center justify-end gap-1">
                     <button onClick={() => onDownload(q)} className="text-indigo-600 hover:bg-indigo-50 p-2 rounded-lg transition-colors" title="Download PDF"><Download className="w-5 h-5" /></button>
                     <button onClick={() => onPrint(q)} className="text-blue-600 hover:bg-blue-50 p-2 rounded-lg transition-colors" title="Print"><Printer className="w-5 h-5" /></button>
                     <button onClick={() => exportToExcel(q)} className="text-green-600 hover:bg-green-50 p-2 rounded-lg transition-colors" title="Excel Export"><FileSpreadsheet className="w-5 h-5" /></button>
                     {canModifyQuotes && (<button onClick={() => onEdit(q)} className="text-gray-600 hover:bg-gray-50 p-2 rounded-lg transition-colors"><Edit3 className="w-5 h-5" /></button>)}
-                    {canModifyQuotes && (<button onClick={() => onDelete(q.id)} className="text-red-600 hover:bg-red-50 p-2 rounded-lg transition-colors"><Trash2 className="w-5 h-5" /></button>)}
+                    {canModifyQuotes && (
+                      confirmingDeleteId === q.id ? (
+                        <div className="flex items-center gap-1 bg-red-50 p-1 rounded border border-red-100">
+                          <button onClick={() => { onDelete(q.id); setConfirmingDeleteId(null); }} className="text-[10px] font-black uppercase bg-red-600 text-white px-2 py-1 rounded">Yes</button>
+                          <button onClick={() => setConfirmingDeleteId(null)} className="text-[10px] font-black uppercase bg-gray-200 text-gray-600 px-2 py-1 rounded">No</button>
+                        </div>
+                      ) : (
+                        <button onClick={() => setConfirmingDeleteId(q.id)} className="text-red-600 hover:bg-red-50 p-2 rounded-lg transition-colors" title="Delete"><Trash2 className="w-5 h-5" /></button>
+                      )
+                    )}
+                    </div>
                   </td>
                 </tr>
               )})}

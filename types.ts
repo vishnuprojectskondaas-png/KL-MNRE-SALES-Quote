@@ -114,10 +114,8 @@ export interface BOMItem {
 export interface BOMTemplate {
   id: string;
   name: string;
-  projectType?: ProjectType;
-  structureType?: StructureType;
-  panelType?: PanelType;
   items: BOMItem[];
+  isMaster?: boolean;
 }
 
 export interface ProductDescription {

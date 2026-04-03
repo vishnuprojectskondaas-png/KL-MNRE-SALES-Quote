@@ -4,7 +4,7 @@ import { AppState, Quotation, BOMTemplate, BOMItem, ProductPricing, ProductDescr
 import AdminPanel from './components/AdminPanel';
 import QuotationForm from './components/QuotationForm';
 import PrintableView from './components/PrintableView';
-import { LogIn, FileText, Settings, LayoutDashboard, PlusCircle, LogOut, Trash2, Plus, Copy, ChevronDown, ChevronUp, Loader2, Link, Users, UserPlus, CheckCircle, AlertCircle, Edit, Filter, RefreshCw, Upload, DownloadCloud, ShieldCheck, Search, GripVertical } from 'lucide-react';
+import { LogIn, FileText, Settings, LayoutDashboard, PlusCircle, LogOut, Trash2, Plus, Copy, ChevronDown, ChevronUp, Loader2, Link, Users, UserPlus, CheckCircle, AlertCircle, Edit, Filter, RefreshCw, Upload, DownloadCloud, ShieldCheck, Search, GripVertical, X } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -94,22 +94,17 @@ const App: React.FC = () => {
   };
 
   const handleDeleteQuotation = async (id: string) => {
-    if (confirm('Delete this quotation?')) {
-      const currentQuotes = state.quotations || [];
-      const updatedQuotes = currentQuotes.filter(q => q.id !== id);
-      setState(prev => ({ ...prev, quotations: updatedQuotes }));
-      await deleteQuotationFromLocal(id, currentQuotes);
-    }
+    const currentQuotes = state.quotations || [];
+    const updatedQuotes = currentQuotes.filter(q => q.id !== id);
+    setState(prev => ({ ...prev, quotations: updatedQuotes }));
+    await deleteQuotationFromLocal(id, currentQuotes);
   };
 
-  const handleSaveTemplate = (name: string, items: BOMItem[], projectType?: ProjectType, structureType?: StructureType, panelType?: PanelType) => {
+  const handleSaveTemplate = (name: string, items: BOMItem[]) => {
     const newTemplate: BOMTemplate = {
       id: Date.now().toString(),
       name,
-      items,
-      projectType,
-      structureType,
-      panelType
+      items
     };
     updateSettingsState(prev => ({
       ...prev,
@@ -452,6 +447,8 @@ interface SortableProductRowProps {
   pricingList: ProductPricing[];
   templatesList: BOMTemplate[];
   columnWidths: Record<string, number>;
+  confirmingDeleteId: string | null;
+  setConfirmingDeleteId: (id: string | null) => void;
 }
 
 const SortableProductRow: React.FC<SortableProductRowProps> = ({ 
@@ -461,7 +458,9 @@ const SortableProductRow: React.FC<SortableProductRowProps> = ({
   productsList, 
   pricingList, 
   templatesList,
-  columnWidths
+  columnWidths,
+  confirmingDeleteId,
+  setConfirmingDeleteId
 }) => {
   const {
     attributes,
@@ -487,10 +486,10 @@ const SortableProductRow: React.FC<SortableProductRowProps> = ({
         </button>
       </td>
       <td className="p-1 border-r" style={{ width: columnWidths.name }}>
-        <input 
-          className="w-full p-2 text-xs font-bold outline-none bg-transparent focus:bg-blue-50 uppercase" 
+        <AutoResizeTextarea 
+          className="w-full p-2 text-xs font-bold outline-none bg-transparent focus:bg-blue-50 uppercase resize-none" 
           value={desc.name || ''} 
-          onChange={e => updateProductDesc(desc.id, { name: e.target.value })} 
+          onChange={val => updateProductDesc(desc.id, { name: val })} 
         />
       </td>
       <td className="p-1 border-r" style={{ width: columnWidths.projectType }}>
@@ -552,17 +551,20 @@ const SortableProductRow: React.FC<SortableProductRowProps> = ({
           >
             <Copy className="w-3.5 h-3.5" />
           </button>
-          <button 
-            onClick={() => {
-              if(confirm('Delete this product specification?')) {
-                updateSub('productDescriptions', productsList.filter(item => item.id !== desc.id));
-              }
-            }}
-            className="p-1.5 text-red-400 hover:bg-red-50 rounded transition-colors"
-            title="Delete"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-          </button>
+          {confirmingDeleteId === desc.id ? (
+            <div className="flex items-center gap-1 bg-red-50 p-0.5 rounded border border-red-100">
+              <button onClick={() => { updateSub('productDescriptions', productsList.filter(item => item.id !== desc.id)); setConfirmingDeleteId(null); }} className="text-[8px] font-black uppercase bg-red-600 text-white px-1.5 py-0.5 rounded">Yes</button>
+              <button onClick={() => setConfirmingDeleteId(null)} className="text-[8px] font-black uppercase bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded">No</button>
+            </div>
+          ) : (
+            <button 
+              onClick={() => setConfirmingDeleteId(desc.id)}
+              className="p-1.5 text-red-400 hover:bg-red-50 rounded transition-colors"
+              title="Delete"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
       </td>
     </tr>
@@ -725,15 +727,18 @@ const SettingsView: React.FC<{
   onUpdateState?: (updater: (prev: AppState) => AppState) => void
 }> = ({ state, onUpdate, onUpdateState }) => {
   const [activeSubTab, setActiveSubTab] = useState<'company' | 'users' | 'pricing' | 'terms' | 'bank' | 'warranty' | 'bom' | 'products'>('company');
+  const [bomView, setBomView] = useState<'templates' | 'master'>('templates');
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [expandedTemplateId, setExpandedTemplateId] = useState<string | null>(null);
   const [expandedProductId, setExpandedProductId] = useState<string | null>(null);
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
 
   const [filterProjectType, setFilterProjectType] = useState<string>('All');
   const [filterStructureType, setFilterStructureType] = useState<string>('All');
   const [filterPanelType, setFilterPanelType] = useState<string>('All');
   const [bomSearch, setBomSearch] = useState<string>('');
+  const [showMasterSelection, setShowMasterSelection] = useState(false);
 
   const [newUser, setNewUser] = useState<Partial<User>>({ role: 'user', name: '', username: '', password: '', salesPersonName: '', salesPersonMobile: '' });
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
@@ -775,7 +780,11 @@ const SettingsView: React.FC<{
       const newIndex = template.items.findIndex((item) => item.id === over.id);
       
       const newItems = arrayMove(template.items, oldIndex, newIndex);
-      handleUpdateTemplate(templateId, { items: newItems });
+      if (bomView === 'templates') {
+        handleUpdateTemplate(templateId, { items: newItems });
+      } else {
+        handleUpdateMasterBom(templateId, { items: newItems });
+      }
     }
   };
 
@@ -874,15 +883,13 @@ const SettingsView: React.FC<{
   };
 
   const handleDeleteUser = (id: string) => {
-    if(confirm("Delete this user?")) {
-      updateSub('users', (prev: User[]) => {
-        if((prev || []).length <= 1) {
-          alert("Cannot delete the last user");
-          return prev;
-        }
-        return (prev || []).filter(u => u.id !== id);
-      });
-    }
+    updateSub('users', (prev: User[]) => {
+      if((prev || []).length <= 1) {
+        alert("Cannot delete the last user");
+        return prev;
+      }
+      return (prev || []).filter(u => u.id !== id);
+    });
   };
 
   const handleAddPricing = () => {
@@ -1136,15 +1143,12 @@ const SettingsView: React.FC<{
         };
 
         // Group rows by Template Name
-        const templatesMap: Record<string, { items: BOMItem[], projectType?: ProjectType, structureType?: StructureType, panelType?: PanelType }> = {};
+        const templatesMap: Record<string, { items: BOMItem[] }> = {};
         excelData.forEach((row: any) => {
           const templateName = getVal(row, 'Template Name') || 'Imported BOM Template';
           if (!templatesMap[templateName]) {
             templatesMap[templateName] = {
-              items: [],
-              projectType: getVal(row, 'Project Type') as ProjectType,
-              structureType: getVal(row, 'Structure Type') as StructureType,
-              panelType: getVal(row, 'Panel Type') as PanelType
+              items: []
             };
           }
           templatesMap[templateName].items.push({
@@ -1161,12 +1165,11 @@ const SettingsView: React.FC<{
           id: Math.random().toString(36).substr(2, 9),
           name: name,
           items: data.items,
-          projectType: data.projectType,
-          structureType: data.structureType,
-          panelType: data.panelType
+          isMaster: bomView === 'master'
         }));
 
-        if (confirm(`Import ${newTemplates.length} BOM templates with total ${excelData.length} components? This will append to existing list.`)) {
+        const typeLabel = bomView === 'master' ? 'Master BOMs' : 'BOM templates';
+        if (confirm(`Import ${newTemplates.length} ${typeLabel} with total ${excelData.length} components? This will append to existing list.`)) {
           updateSub('bomTemplates', (prev: BOMTemplate[]) => [...(prev || []), ...newTemplates]);
         }
       } catch (error) {
@@ -1305,9 +1308,6 @@ const SettingsView: React.FC<{
     const sampleData = [
       {
         'Template Name': '3kW Sample BOM',
-        'Project Type': 'Ongrid Subsidy',
-        'Structure Type': '2 Meter Flat Roof Structure',
-        'Panel Type': 'TOPCON G12R',
         'Product Component': 'Solar Panels',
         'UOM': 'Nos',
         'Qty': '8',
@@ -1316,9 +1316,6 @@ const SettingsView: React.FC<{
       },
       {
         'Template Name': '3kW Sample BOM',
-        'Project Type': 'Ongrid Subsidy',
-        'Structure Type': '2 Meter Flat Roof Structure',
-        'Panel Type': 'TOPCON G12R',
         'Product Component': 'On-Grid Inverter',
         'UOM': 'No',
         'Qty': '1',
@@ -1330,7 +1327,8 @@ const SettingsView: React.FC<{
     const ws = XLSX.utils.json_to_sheet(sampleData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "BOM_Template");
-    XLSX.writeFile(wb, "Solar_BOM_Import_Sample.xlsx");
+    const filename = bomView === 'master' ? "Solar_Master_BOM_Import_Sample.xlsx" : "Solar_BOM_Template_Import_Sample.xlsx";
+    XLSX.writeFile(wb, filename);
   };
 
   const downloadSampleWarrantyExcel = () => {
@@ -1369,20 +1367,42 @@ const SettingsView: React.FC<{
   };
 
   const handleCreateTemplate = () => {
+    setShowMasterSelection(true);
+  };
+
+  const handleCreateFromMaster = (masterBom: BOMTemplate) => {
     const newId = Date.now().toString();
+    const newItems = (masterBom.items || []).map(item => ({ ...item, id: Math.random().toString(36).substr(2, 9) }));
     const newTemplate: BOMTemplate = { 
       id: newId, 
-      name: 'New BOM Template', 
-      items: [],
-      projectType: filterProjectType !== 'All' ? filterProjectType as ProjectType : 'Ongrid Subsidy',
-      structureType: filterStructureType !== 'All' ? filterStructureType as StructureType : '2 Meter Flat Roof Structure',
-      panelType: filterPanelType !== 'All' ? filterPanelType as PanelType : 'TOPCON G12R'
+      name: `${masterBom.name} (Copy)`, 
+      items: newItems,
+      isMaster: false
     };
     updateSub('bomTemplates', (prev: BOMTemplate[]) => [...(prev || []), newTemplate]);
     setExpandedTemplateId(newId);
+    setShowMasterSelection(false);
   };
 
   const handleUpdateTemplate = (id: string, updates: Partial<BOMTemplate>) => {
+    updateSub('bomTemplates', (prev: BOMTemplate[]) => 
+      (prev || []).map(t => t.id === id ? { ...t, ...updates } : t)
+    );
+  };
+
+  const handleCreateMasterBom = () => {
+    const newId = Date.now().toString();
+    const newBom: BOMTemplate = { 
+      id: newId, 
+      name: 'New Master BOM', 
+      items: [],
+      isMaster: true
+    };
+    updateSub('bomTemplates', (prev: BOMTemplate[]) => [...(prev || []), newBom]);
+    setExpandedTemplateId(newId);
+  };
+
+  const handleUpdateMasterBom = (id: string, updates: Partial<BOMTemplate>) => {
     updateSub('bomTemplates', (prev: BOMTemplate[]) => 
       (prev || []).map(t => t.id === id ? { ...t, ...updates } : t)
     );
@@ -1417,11 +1437,15 @@ const SettingsView: React.FC<{
   });
 
   const filteredBOMTemplates = templatesList.filter(t => {
-    const ptMatch = filterProjectType === 'All' || (t.projectType || 'Ongrid Subsidy') === filterProjectType;
-    const stMatch = filterStructureType === 'All' || (t.structureType || '2 Meter Flat Roof Structure') === filterStructureType;
-    const paMatch = filterPanelType === 'All' || (t.panelType || 'TOPCON G12R') === filterPanelType;
+    if (t.isMaster) return false;
     const searchMatch = (t.name || '').toLowerCase().includes(bomSearch.toLowerCase());
-    return ptMatch && stMatch && paMatch && searchMatch;
+    return searchMatch;
+  });
+
+  const filteredMasterBoms = templatesList.filter(t => {
+    if (!t.isMaster) return false;
+    const searchMatch = (t.name || '').toLowerCase().includes(bomSearch.toLowerCase());
+    return searchMatch;
   });
 
   return (
@@ -1445,7 +1469,7 @@ const SettingsView: React.FC<{
       </div>
       
       <div className="p-8">
-        {(activeSubTab === 'pricing' || activeSubTab === 'products' || activeSubTab === 'warranty' || activeSubTab === 'terms' || activeSubTab === 'bom') && (
+        {(activeSubTab === 'pricing' || activeSubTab === 'products' || activeSubTab === 'warranty' || activeSubTab === 'terms') && (
            <div className="flex flex-wrap gap-4 items-center mb-6 p-4 bg-gray-100 rounded-lg border border-gray-200">
              <div className="flex items-center gap-2">
                <Filter className="w-4 h-4 text-gray-500" />
@@ -1477,18 +1501,6 @@ const SettingsView: React.FC<{
                  <option value="All">All Panel Types</option>
                  {PANEL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                </select>
-               {activeSubTab === 'bom' && (
-                 <div className="relative flex-1 md:max-w-sm">
-                   <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-                   <input 
-                     type="text" 
-                     placeholder="Search templates by name..."
-                     value={bomSearch}
-                     onChange={e => setBomSearch(e.target.value)}
-                     className="pl-8 pr-4 py-1.5 w-full bg-white border rounded text-xs font-bold outline-none focus:ring-1 focus:ring-red-500"
-                   />
-                 </div>
-               )}
              </>
 
              <button 
@@ -1643,10 +1655,10 @@ const SettingsView: React.FC<{
                   {filteredPricing.map(p => (
                     <tr key={p.id} className="hover:bg-gray-50 transition-colors">
                       <td className="p-1 border-r">
-                        <input 
-                          className="w-full p-2 text-xs font-bold outline-none bg-transparent focus:bg-blue-50" 
+                        <AutoResizeTextarea 
+                          className="w-full p-2 text-xs font-bold outline-none bg-transparent focus:bg-blue-50 resize-none" 
                           value={p.name || ''} 
-                          onChange={e => updatePricingItem(p.id, { name: e.target.value })} 
+                          onChange={val => updatePricingItem(p.id, { name: val })} 
                         />
                       </td>
                       <td className="p-1 border-r">
@@ -1729,17 +1741,20 @@ const SettingsView: React.FC<{
                           >
                             <Copy className="w-3.5 h-3.5" />
                           </button>
-                          <button 
-                            onClick={() => {
-                              if(confirm('Delete this pricing package?')) {
-                                updateSub('productPricing', (prev: ProductPricing[]) => (prev || []).filter(item => item.id !== p.id));
-                              }
-                            }}
-                            className="p-1.5 text-red-400 hover:bg-red-50 rounded transition-colors"
-                            title="Delete"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          {confirmingDeleteId === p.id ? (
+                            <div className="flex items-center gap-1 bg-red-50 p-0.5 rounded border border-red-100">
+                              <button onClick={() => { updateSub('productPricing', (prev: ProductPricing[]) => (prev || []).filter(item => item.id !== p.id)); setConfirmingDeleteId(null); }} className="text-[8px] font-black uppercase bg-red-600 text-white px-1.5 py-0.5 rounded">Yes</button>
+                              <button onClick={() => setConfirmingDeleteId(null)} className="text-[8px] font-black uppercase bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded">No</button>
+                            </div>
+                          ) : (
+                            <button 
+                              onClick={() => setConfirmingDeleteId(p.id)}
+                              className="p-1.5 text-red-400 hover:bg-red-50 rounded transition-colors"
+                              title="Delete"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -1813,6 +1828,8 @@ const SettingsView: React.FC<{
                           pricingList={pricingList}
                           templatesList={templatesList}
                           columnWidths={columnWidths}
+                          confirmingDeleteId={confirmingDeleteId}
+                          setConfirmingDeleteId={setConfirmingDeleteId}
                         />
                       ))}
                     </SortableContext>
@@ -1889,11 +1906,14 @@ const SettingsView: React.FC<{
                         title="Enable/Disable Term"
                       />
                       <button onClick={() => handleCopyTerm(term)} className="text-blue-500 hover:text-blue-700 transition-colors" title="Copy Term"><Copy className="w-4 h-4" /></button>
-                      <button onClick={() => {
-                        if (confirm('Delete this term?')) {
-                          updateSub('terms', (prev: Term[]) => (prev || []).filter(t => t.id !== term.id));
-                        }
-                      }} className="text-red-400 hover:text-red-600 transition-colors" title="Delete Term"><Trash2 className="w-4 h-4" /></button>
+                      {confirmingDeleteId === term.id ? (
+                        <div className="flex items-center gap-1 bg-red-50 p-1 rounded border border-red-100">
+                          <button onClick={() => { updateSub('terms', (prev: Term[]) => (prev || []).filter(t => t.id !== term.id)); setConfirmingDeleteId(null); }} className="text-[8px] font-black uppercase bg-red-600 text-white px-1.5 py-0.5 rounded">Yes</button>
+                          <button onClick={() => setConfirmingDeleteId(null)} className="text-[8px] font-black uppercase bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded">No</button>
+                        </div>
+                      ) : (
+                        <button onClick={() => setConfirmingDeleteId(term.id)} className="text-red-400 hover:text-red-600 transition-colors" title="Delete Term"><Trash2 className="w-4 h-4" /></button>
+                      )}
                     </div>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
@@ -1962,11 +1982,14 @@ const SettingsView: React.FC<{
                     <div className="flex gap-2">
                       <button onClick={() => handleCopyWarranty(w)} className="text-xs font-black uppercase px-3 py-1.5 rounded border border-blue-100 bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors shadow-sm flex items-center gap-1.5" title="Copy Declaration"><Copy className="w-3.5 h-3.5" /> Copy</button>
                       <button onClick={() => setEditingItemId(editingItemId === w.id ? null : w.id)} className={`text-xs font-black uppercase px-4 py-1.5 rounded border transition-colors shadow-sm ${editingItemId === w.id ? 'bg-black text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>{editingItemId === w.id ? 'Close' : 'Edit Declaration'}</button>
-                      <button onClick={() => {
-                        if (confirm('Delete this warranty package?')) {
-                          updateSub('warrantyPackages', (prev: WarrantyPackage[]) => (prev || []).filter(item => item.id !== w.id));
-                        }
-                      }} className="text-red-400 hover:text-red-600 p-1"><Trash2 className="w-4 h-4" /> </button>
+                      {confirmingDeleteId === w.id ? (
+                        <div className="flex items-center gap-1 bg-red-50 p-1 rounded border border-red-100">
+                          <button onClick={() => { updateSub('warrantyPackages', (prev: WarrantyPackage[]) => (prev || []).filter(item => item.id !== w.id)); setConfirmingDeleteId(null); }} className="text-[8px] font-black uppercase bg-red-600 text-white px-1.5 py-0.5 rounded">Yes</button>
+                          <button onClick={() => setConfirmingDeleteId(null)} className="text-[8px] font-black uppercase bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded">No</button>
+                        </div>
+                      ) : (
+                        <button onClick={() => setConfirmingDeleteId(w.id)} className="text-red-400 hover:text-red-600 p-1"><Trash2 className="w-4 h-4" /> </button>
+                      )}
                     </div>
                   </div>
                   {editingItemId === w.id && (
@@ -1994,79 +2017,162 @@ const SettingsView: React.FC<{
 
         {activeSubTab === 'bom' && (
           <div className="space-y-6">
+            <div className="flex border-b border-gray-200 mb-4">
+              <button 
+                onClick={() => setBomView('templates')}
+                className={`px-4 py-2 text-xs font-black uppercase transition-colors ${bomView === 'templates' ? 'text-red-600 border-b-2 border-red-600' : 'text-gray-400 hover:text-gray-600'}`}
+              >
+                BOM Templates
+              </button>
+              <button 
+                onClick={() => setBomView('master')}
+                className={`px-4 py-2 text-xs font-black uppercase transition-colors ${bomView === 'master' ? 'text-red-600 border-b-2 border-red-600' : 'text-gray-400 hover:text-gray-600'}`}
+              >
+                Master BOM
+              </button>
+            </div>
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-              <h3 className="text-lg font-bold">Bill of Materials Templates</h3>
+              <div className="flex items-center gap-4 flex-1">
+                <h3 className="text-lg font-bold whitespace-nowrap">
+                  {bomView === 'templates' ? 'Bill of Materials Templates' : 'Master BOMs'}
+                </h3>
+                <div className="relative flex-1 max-w-sm">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                  <input 
+                    type="text" 
+                    placeholder={bomView === 'templates' ? "Search templates by name..." : "Search master BOMs by name..."}
+                    value={bomSearch}
+                    onChange={e => setBomSearch(e.target.value)}
+                    className="pl-8 pr-4 py-1.5 w-full bg-white border rounded text-xs font-bold outline-none focus:ring-1 focus:ring-red-500"
+                  />
+                </div>
+              </div>
               <div className="flex flex-wrap gap-2 w-full md:w-auto">
-                <button 
-                  onClick={downloadSampleBOMExcel} 
-                  className="flex-1 md:flex-none border border-gray-300 bg-white text-gray-700 px-4 py-2 rounded text-xs font-black uppercase flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors shadow-sm"
-                >
-                  <DownloadCloud className="w-4 h-4" /> Sample Excel
-                </button>
-                <label className="flex-1 md:flex-none bg-blue-600 text-white px-4 py-2 rounded text-xs font-black uppercase flex items-center justify-center gap-2 cursor-pointer hover:bg-blue-700 transition-colors shadow-md shadow-blue-100">
-                  <Upload className="w-4 h-4" /> Bulk Import
-                  <input ref={bomFileInputRef} type="file" accept=".xlsx, .xls" className="hidden" onChange={handleBulkImportBOM} />
-                </label>
-                <button 
-                  onClick={handleCreateTemplate} 
-                  className="flex-1 md:flex-none bg-black text-white px-4 py-2 rounded text-xs font-black uppercase flex items-center justify-center gap-2 shadow-md active:scale-95 transition-all"
-                >
-                  <Plus className="w-4 h-4" /> New BOM Template
-                </button>
+                {bomView === 'templates' ? (
+                  <>
+                    <button 
+                      onClick={downloadSampleBOMExcel} 
+                      className="flex-1 md:flex-none border border-gray-300 bg-white text-gray-700 px-4 py-2 rounded text-xs font-black uppercase flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors shadow-sm"
+                    >
+                      <DownloadCloud className="w-4 h-4" /> Sample Excel
+                    </button>
+                    <label className="flex-1 md:flex-none bg-blue-600 text-white px-4 py-2 rounded text-xs font-black uppercase flex items-center justify-center gap-2 cursor-pointer hover:bg-blue-700 transition-colors shadow-md shadow-blue-100">
+                      <Upload className="w-4 h-4" /> Bulk Import
+                      <input ref={bomFileInputRef} type="file" accept=".xlsx, .xls" className="hidden" onChange={handleBulkImportBOM} />
+                    </label>
+                    <button 
+                      onClick={handleCreateTemplate} 
+                      className="flex-1 md:flex-none bg-black text-white px-4 py-2 rounded text-xs font-black uppercase flex items-center justify-center gap-2 shadow-md active:scale-95 transition-all"
+                    >
+                      <Plus className="w-4 h-4" /> New BOM Template
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button 
+                      onClick={downloadSampleBOMExcel} 
+                      className="flex-1 md:flex-none border border-gray-300 bg-white text-gray-700 px-4 py-2 rounded text-xs font-black uppercase flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors shadow-sm"
+                    >
+                      <DownloadCloud className="w-4 h-4" /> Sample Excel
+                    </button>
+                    <label className="flex-1 md:flex-none bg-blue-600 text-white px-4 py-2 rounded text-xs font-black uppercase flex items-center justify-center gap-2 cursor-pointer hover:bg-blue-700 transition-colors shadow-md shadow-blue-100">
+                      <Upload className="w-4 h-4" /> Bulk Import
+                      <input ref={bomFileInputRef} type="file" accept=".xlsx, .xls" className="hidden" onChange={handleBulkImportBOM} />
+                    </label>
+                    <button 
+                      onClick={handleCreateMasterBom} 
+                      className="flex-1 md:flex-none bg-black text-white px-4 py-2 rounded text-xs font-black uppercase flex items-center justify-center gap-2 shadow-md active:scale-95 transition-all"
+                    >
+                      <Plus className="w-4 h-4" /> Create BOM
+                    </button>
+                  </>
+                )}
               </div>
             </div>
             <div className="space-y-4">
-              {filteredBOMTemplates.map(template => (
+              {showMasterSelection && (
+                <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-6 relative">
+                  <button onClick={() => setShowMasterSelection(false)} className="absolute top-2 right-2 text-blue-400 hover:text-blue-600"><X className="w-4 h-4" /></button>
+                  <h4 className="text-xs font-black uppercase tracking-widest text-blue-600 mb-4">Select a Master BOM to create from</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {templatesList.filter(t => t.isMaster).length === 0 && (
+                      <div className="md:col-span-2 p-4 text-center border-2 border-dashed border-blue-200 rounded-lg bg-white/50">
+                        <p className="text-[10px] font-bold uppercase text-blue-400">No Master BOMs found. Create one in the "Master BOM" tab first.</p>
+                      </div>
+                    )}
+                    {templatesList.filter(t => t.isMaster).map(master => (
+                      <button 
+                        key={master.id} 
+                        onClick={() => handleCreateFromMaster(master)}
+                        className="text-left p-3 bg-white border border-blue-100 rounded-lg hover:border-blue-400 hover:shadow-sm transition-all group"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold uppercase text-gray-700">{master.name}</span>
+                          <Plus className="w-3.5 h-3.5 text-blue-400 group-hover:text-blue-600" />
+                        </div>
+                        <div className="text-[9px] text-gray-400 font-bold uppercase mt-1">{(master.items || []).length} Items</div>
+                      </button>
+                    ))}
+                    <button 
+                      onClick={() => {
+                        const newId = Date.now().toString();
+                        const newTemplate: BOMTemplate = { id: newId, name: 'Blank BOM Template', items: [], isMaster: false };
+                        updateSub('bomTemplates', (prev: BOMTemplate[]) => [...(prev || []), newTemplate]);
+                        setExpandedTemplateId(newId);
+                        setShowMasterSelection(false);
+                      }}
+                      className="text-left p-3 bg-white border border-dashed border-gray-300 rounded-lg hover:border-gray-400 hover:shadow-sm transition-all group flex items-center justify-between"
+                    >
+                      <span className="text-xs font-bold uppercase text-gray-500 italic">Start with Blank Template</span>
+                      <Plus className="w-3.5 h-3.5 text-gray-300 group-hover:text-gray-500" />
+                    </button>
+                  </div>
+                </div>
+              )}
+              {(bomView === 'templates' ? filteredBOMTemplates : filteredMasterBoms).map(template => (
                 <div key={template.id} className="border rounded-lg bg-gray-50 overflow-hidden shadow-sm border-gray-100">
                   <div className="p-4 flex items-center gap-4 bg-white border-b">
                     <button onClick={() => setExpandedTemplateId(expandedTemplateId === template.id ? null : template.id)} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">{expandedTemplateId === template.id ? <ChevronUp className="w-5 h-5 text-gray-400"/> : <ChevronDown className="w-5 h-5 text-gray-400"/>}</button>
                     <AutoResizeTextarea 
                       className="font-bold text-[11px] uppercase tracking-wider flex-1 border-b border-transparent focus:border-red-600 outline-none text-gray-900 bg-transparent resize-none min-h-[1.5rem] py-1 w-full" 
                       value={template.name || ''} 
-                      onChange={val => handleUpdateTemplate(template.id, { name: val })}
-                      placeholder="Template Name"
+                      onChange={val => bomView === 'templates' ? handleUpdateTemplate(template.id, { name: val }) : handleUpdateMasterBom(template.id, { name: val })}
+                      placeholder="Name"
                     />
                     
-                    <div className="flex items-center gap-2">
-                      <select 
-                        className="text-[9px] font-bold border rounded p-1 bg-white" 
-                        value={template.projectType || ''} 
-                        onChange={e => handleUpdateTemplate(template.id, { projectType: e.target.value as ProjectType })}
-                      >
-                        {!template.projectType && <option value="">Select Project Type</option>}
-                        {PROJECT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                      </select>
-                      <select 
-                        className="text-[9px] font-bold border rounded p-1 bg-white" 
-                        value={template.structureType || ''} 
-                        onChange={e => handleUpdateTemplate(template.id, { structureType: e.target.value as StructureType })}
-                      >
-                        {!template.structureType && <option value="">Select Structure Type</option>}
-                        {STRUCTURE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                      </select>
-                      <select 
-                        className="text-[9px] font-bold border rounded p-1 bg-white" 
-                        value={template.panelType || ''} 
-                        onChange={e => handleUpdateTemplate(template.id, { panelType: e.target.value as PanelType })}
-                      >
-                        {!template.panelType && <option value="">Select Panel Type</option>}
-                        {PANEL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                      </select>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => { 
-                        const newId = Date.now().toString(); 
-                        // Deep clone items array and items themselves to avoid shared references
-                        const newItems = (template.items || []).map(item => ({ ...item, id: Math.random().toString(36).substr(2, 9) }));
-                        updateSub('bomTemplates', (prev: BOMTemplate[]) => [...(prev || []), { ...template, id: newId, name: `${template.name} (Copy)`, items: newItems }]); 
-                      }} className="text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg" title="Duplicate Template"><Copy className="w-4 h-4"/></button>
-                      <button onClick={() => {
-                        if (confirm('Delete this template?')) {
-                          updateSub('bomTemplates', (prev: BOMTemplate[]) => (prev || []).filter(t => t.id !== template.id));
-                        }
-                      }} className="text-red-400 hover:text-red-600 p-1.5 rounded-lg"><Trash2 className="w-4 h-4"/></button>
-                    </div>
+                      <div className="flex items-center gap-2">
+                        {confirmingDeleteId === template.id ? (
+                          <div className="flex items-center gap-1 bg-red-50 p-1 rounded-lg border border-red-100">
+                            <span className="text-[9px] font-black uppercase text-red-600 px-1">Confirm?</span>
+                            <button 
+                              onClick={() => {
+                                const collection = 'bomTemplates';
+                                updateSub(collection, (prev: BOMTemplate[]) => (prev || []).filter(t => t.id !== template.id));
+                                setConfirmingDeleteId(null);
+                              }} 
+                              className="bg-red-600 text-white text-[9px] font-black uppercase px-2 py-1 rounded hover:bg-red-700 transition-colors"
+                            >
+                              Yes
+                            </button>
+                            <button 
+                              onClick={() => setConfirmingDeleteId(null)} 
+                              className="bg-gray-200 text-gray-600 text-[9px] font-black uppercase px-2 py-1 rounded hover:bg-gray-300 transition-colors"
+                            >
+                              No
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            <button onClick={() => { 
+                              const newId = Date.now().toString(); 
+                              const newItems = (template.items || []).map(item => ({ ...item, id: Math.random().toString(36).substr(2, 9) }));
+                              const collection = 'bomTemplates';
+                              updateSub(collection, (prev: BOMTemplate[]) => [...(prev || []), { ...template, id: newId, name: `${template.name} (Copy)`, items: newItems }]); 
+                            }} className="text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg" title="Duplicate"><Copy className="w-4 h-4"/></button>
+                            <button onClick={() => setConfirmingDeleteId(template.id)} className="text-red-400 hover:text-red-600 p-1.5 rounded-lg" title="Delete"><Trash2 className="w-4 h-4"/></button>
+                          </>
+                        )}
+                      </div>
                   </div>
                   {expandedTemplateId === template.id && (
                     <div className="p-4 border-t overflow-x-auto bg-gray-50/50">
@@ -2098,7 +2204,7 @@ const SettingsView: React.FC<{
                                   item={item}
                                   idx={idx}
                                   template={template}
-                                  handleUpdateTemplate={handleUpdateTemplate}
+                                  handleUpdateTemplate={bomView === 'templates' ? handleUpdateTemplate : handleUpdateMasterBom}
                                   columnWidths={bomColumnWidths}
                                 />
                               ))}
@@ -2106,12 +2212,29 @@ const SettingsView: React.FC<{
                           </tbody>
                         </table>
                       </DndContext>
-                      <button onClick={() => handleUpdateTemplate(template.id, { items: [...(template.items || []), { id: Date.now().toString(), product: '', uom: '', quantity: '', specification: '', make: '' }] })} className="text-[10px] font-black uppercase text-red-600 mt-4 flex items-center gap-1 hover:bg-red-50 px-3 py-1.5 rounded-full transition-colors border border-red-100 shadow-sm"><Plus className="w-3 h-3"/> Add Item Row</button>
+                      <button 
+                        onClick={() => {
+                          const newItem = { id: Date.now().toString(), product: '', uom: '', quantity: '', specification: '', make: '' };
+                          const newItems = [...(template.items || []), newItem];
+                          if (bomView === 'templates') {
+                            handleUpdateTemplate(template.id, { items: newItems });
+                          } else {
+                            handleUpdateMasterBom(template.id, { items: newItems });
+                          }
+                        }} 
+                        className="text-[10px] font-black uppercase text-red-600 mt-4 flex items-center gap-1 hover:bg-red-50 px-3 py-1.5 rounded-full transition-colors border border-red-100 shadow-sm"
+                      >
+                        <Plus className="w-3 h-3"/> Add Item Row
+                      </button>
                     </div>
                   )}
                 </div>
               ))}
-              {filteredBOMTemplates.length === 0 && <p className="text-center py-10 text-gray-400 text-xs font-bold uppercase tracking-widest border-2 border-dashed rounded-lg">No templates found matching your search.</p>}
+              {(bomView === 'templates' ? filteredBOMTemplates : filteredMasterBoms).length === 0 && (
+                <p className="text-center py-10 text-gray-400 text-xs font-bold uppercase tracking-widest border-2 border-dashed rounded-lg bg-gray-50/50">
+                  No {bomView === 'templates' ? 'templates' : 'master BOMs'} found matching your search.
+                </p>
+              )}
             </div>
           </div>
         )}
