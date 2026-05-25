@@ -175,4 +175,5 @@ export interface AppState {
   users: User[];
   quotations: Quotation[];
   nextId: number;
+  maintenanceMode?: boolean;
 }

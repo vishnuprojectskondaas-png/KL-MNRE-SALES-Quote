@@ -333,6 +333,24 @@ const App: React.FC = () => {
 
   const isAdmin = currentUser.role === 'admin';
 
+  if (state.maintenanceMode && !isAdmin) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
+        <div className="bg-white rounded-xl shadow-2xl p-8 w-full max-w-md text-center">
+          <AlertCircle className="w-16 h-16 text-yellow-500 mx-auto mb-6" />
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Quote Pro Under Maintenance</h1>
+          <p className="text-gray-500 mb-6">Quote Pro is currently undergoing maintenance. Please try again later. Only administrators can access the system at this time.</p>
+          <button 
+            onClick={handleLogout}
+            className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700"
+          >
+            Logout
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="min-h-screen flex flex-col md:flex-row no-print">
@@ -726,7 +744,7 @@ const SettingsView: React.FC<{
   onUpdate: (s: AppState) => Promise<void>,
   onUpdateState?: (updater: (prev: AppState) => AppState) => void
 }> = ({ state, onUpdate, onUpdateState }) => {
-  const [activeSubTab, setActiveSubTab] = useState<'company' | 'users' | 'pricing' | 'terms' | 'bank' | 'warranty' | 'bom' | 'products'>('company');
+  const [activeSubTab, setActiveSubTab] = useState<'company' | 'users' | 'pricing' | 'terms' | 'bank' | 'warranty' | 'bom' | 'products' | 'clear-data'>('company');
   const [bomView, setBomView] = useState<'templates' | 'master'>('templates');
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [expandedTemplateId, setExpandedTemplateId] = useState<string | null>(null);
@@ -1457,13 +1475,13 @@ const SettingsView: React.FC<{
       </div>
 
       <div className="flex border-b border-gray-200 bg-gray-50 overflow-x-auto">
-        {(['company', 'users', 'pricing', 'terms', 'bank', 'warranty', 'bom', 'products'] as const).map(tab => (
+        {(['company', 'users', 'pricing', 'terms', 'bank', 'warranty', 'bom', 'products', 'clear-data'] as const).map(tab => (
           <button
             key={tab}
             onClick={() => { setActiveSubTab(tab); setEditingItemId(null); }}
             className={`px-6 py-4 text-sm font-medium capitalize whitespace-nowrap transition-colors ${activeSubTab === tab ? 'text-red-600 border-b-2 border-red-600 bg-white' : 'text-gray-500 hover:text-gray-700'}`}
           >
-            {tab === 'bom' ? 'BOM Templates' : tab === 'products' ? 'Product Names & Links' : tab === 'pricing' ? 'Pricing Table' : tab}
+            {tab === 'bom' ? 'BOM Templates' : tab === 'products' ? 'Product Names & Links' : tab === 'pricing' ? 'Pricing Table' : tab === 'clear-data' ? 'Clear Data' : tab}
           </button>
         ))}
       </div>
@@ -1564,7 +1582,16 @@ const SettingsView: React.FC<{
 
         {activeSubTab === 'users' && (
           <div className="space-y-6">
-             <h3 className="text-lg font-bold">User Management</h3>
+             <div className="flex justify-between items-center">
+               <h3 className="text-lg font-bold">User Management</h3>
+               <button 
+                 onClick={() => onUpdateState?.(prev => ({ ...prev, maintenanceMode: !prev.maintenanceMode }))}
+                 className={`flex items-center gap-2 px-4 py-2 rounded shadow-sm text-xs font-black uppercase transition-colors ${state.maintenanceMode ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+               >
+                 <ShieldCheck className="w-4 h-4" />
+                 {state.maintenanceMode ? 'Maintenance Mode ON' : 'Shutdown for Maintenance'}
+               </button>
+             </div>
              <div className="p-6 rounded-lg border bg-gray-50 shadow-inner">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end mb-4">
                    <div><label className="text-[10px] uppercase font-black text-gray-400 mb-1 block">Full Display Name</label><input className="w-full border p-2 rounded bg-white" value={newUser.name || ''} onChange={e => setNewUser({...newUser, name: e.target.value})} /></div>
@@ -2235,6 +2262,60 @@ const SettingsView: React.FC<{
                   No {bomView === 'templates' ? 'templates' : 'master BOMs'} found matching your search.
                 </p>
               )}
+            </div>
+          </div>
+        )}
+
+        {activeSubTab === 'clear-data' && (
+          <div className="space-y-6 max-w-2xl">
+            <h3 className="text-lg font-bold text-red-600 flex items-center gap-2">
+              <AlertCircle className="w-5 h-5" /> Danger Zone: Clear Data
+            </h3>
+            <div className="p-6 rounded-lg border border-red-200 bg-red-50 shadow-inner">
+              <p className="text-sm font-medium text-red-800 mb-6">
+                Warning: This action will permanently delete all records in the selected categories. This cannot be undone. Please be absolutely certain before proceeding.
+              </p>
+              
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 bg-white rounded border border-red-100 shadow-sm">
+                  <div>
+                    <h4 className="font-bold text-gray-900">Clear Pricing Table</h4>
+                    <p className="text-xs text-gray-500">Deletes all saved pricing packages ({pricingList.length} items)</p>
+                  </div>
+                  <button 
+                    onClick={() => confirm('Are you sure you want to delete ALL Pricing Table records?') && confirm('Double checking: Delete ALL Pricing Table?') && onUpdateState?.(prev => ({ ...prev, productPricing: [] }))}
+                    className="bg-red-600 text-white px-4 py-2 rounded text-xs font-bold hover:bg-red-700 shadow-sm"
+                  >
+                    Clear Pricing
+                  </button>
+                </div>
+                
+                <div className="flex items-center justify-between p-4 bg-white rounded border border-red-100 shadow-sm">
+                  <div>
+                    <h4 className="font-bold text-gray-900">Clear Terms & Conditions</h4>
+                    <p className="text-xs text-gray-500">Deletes all saved terms ({termsList.length} items)</p>
+                  </div>
+                  <button 
+                    onClick={() => confirm('Are you sure you want to delete ALL Terms?') && confirm('Double checking: Delete ALL Terms?') && onUpdateState?.(prev => ({ ...prev, terms: [] }))}
+                    className="bg-red-600 text-white px-4 py-2 rounded text-xs font-bold hover:bg-red-700 shadow-sm"
+                  >
+                    Clear Terms
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between p-4 bg-white rounded border border-red-100 shadow-sm">
+                  <div>
+                    <h4 className="font-bold text-gray-900">Clear Product Names & Links</h4>
+                    <p className="text-xs text-gray-500">Deletes all saved product descriptions ({productsList.length} items)</p>
+                  </div>
+                  <button 
+                    onClick={() => confirm('Are you sure you want to delete ALL Product Names & Links?') && confirm('Double checking: Delete ALL Products?') && onUpdateState?.(prev => ({ ...prev, productDescriptions: [] }))}
+                    className="bg-red-600 text-white px-4 py-2 rounded text-xs font-bold hover:bg-red-700 shadow-sm"
+                  >
+                    Clear Products
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}
