@@ -65,6 +65,7 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
     subsidyAmount: 0,
     ksebCharges: 0,
     customizedStructureCost: 0,
+    customizedStructureGst: 'Without GST',
     additionalMaterialCost: 0,
     netMeterCost: 0
   };
@@ -74,6 +75,7 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
   const subsidyAmount = pricing.subsidyAmount || 0;
   const ksebCharges = pricing.ksebCharges || 0;
   const customizedStructureCost = pricing.customizedStructureCost || 0;
+  const customizedStructureGst = pricing.customizedStructureGst || 'Without GST';
   const additionalMaterialCost = pricing.additionalMaterialCost || 0;
   const netMeterCost = pricing.netMeterCost || 0;
 
@@ -198,7 +200,7 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
           <p className="text-[10pt] font-black text-red-700 uppercase leading-snug">{quotation.systemDescription}</p>
           {isWithoutStructure && (
             <p className="text-[7.5pt] font-black text-gray-600 uppercase mt-1 tracking-tighter">
-              {hasCustomizedStructureCost ? 'Customized Structure Cost Included without GST' : '* Structure cost is additionally chargeable'}
+              {hasCustomizedStructureCost ? `Customized Structure Cost Included ${customizedStructureGst.toLowerCase()}` : '* Structure cost is additionally chargeable'}
             </p>
           )}
         </div>
@@ -266,7 +268,7 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
                 <tr>
                   <td className="text-center text-gray-300 !py-1">05</td>
                   <td className="!py-1 uppercase text-gray-600">
-                    {quotation.structureType === '1 Meter Flat Roof Structure' ? '4 Feet Flat Roof Structure Cost' : 'Customized Structure Cost(Without GST)'}
+                    {quotation.structureType === '1 Meter Flat Roof Structure' ? '4 Feet Flat Roof Structure Cost' : `Customized Structure Cost(${customizedStructureGst})`}
                   </td>
                   <td className="text-right font-black pr-10 text-gray-900 !py-1 text-[10pt] whitespace-nowrap">
                     {quotation.structureType === '1 Meter Flat Roof Structure' 
@@ -309,7 +311,7 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
                     <>
                       <br />
                       <span className="text-red-500 font-black text-[5pt] leading-none">
-                        {hasCustomizedStructureCost ? 'Customized Structure Cost Included without GST' : 'Customized Structure cost additionally chargeable as per site condition'}
+                        {hasCustomizedStructureCost ? `Customized Structure Cost Included ${customizedStructureGst.toLowerCase()}` : 'Customized Structure cost additionally chargeable as per site condition'}
                       </span>
                     </>
                   )}

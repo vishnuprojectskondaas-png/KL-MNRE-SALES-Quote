@@ -226,31 +226,7 @@ const QuotationForm: React.FC<Props> = ({ state, currentUser, editData, onSave, 
              </p>
           )}
 
-          {state.attachments && state.attachments.length > 0 && (
-            <div className="mt-4 pt-4 border-t border-gray-100">
-               <label className="block text-[10px] uppercase font-black text-gray-400 mb-2">Include Attachments ({state.attachments.length} available)</label>
-               <div className="flex flex-wrap gap-4">
-                 {state.attachments.map(att => (
-                    <label key={att.id} className="flex items-center gap-2 cursor-pointer bg-white px-3 py-2 border rounded-lg shadow-sm border-gray-200">
-                      <input 
-                        type="checkbox" 
-                        checked={formData.attachmentIds?.includes(att.id) || false}
-                        onChange={(e) => {
-                          const curr = formData.attachmentIds || [];
-                          if (e.target.checked) {
-                            setFormData(prev => ({ ...prev, attachmentIds: [...curr, att.id] }));
-                          } else {
-                            setFormData(prev => ({ ...prev, attachmentIds: curr.filter(id => id !== att.id) }));
-                          }
-                        }}
-                        className="w-4 h-4 text-red-600 rounded"
-                      />
-                      <span className="text-xs font-bold text-gray-800">{att.name}</span>
-                    </label>
-                 ))}
-               </div>
-            </div>
-          )}
+
         </section>
 
         <section>
@@ -315,15 +291,28 @@ const QuotationForm: React.FC<Props> = ({ state, currentUser, editData, onSave, 
               <input type="number" value={pKseb ?? ''} onChange={e => setFormData({ ...formData, pricing: { ...formData.pricing, ksebCharges: Number(e.target.value) } })} className="w-full border p-2 rounded shadow-inner bg-white font-bold" />
             </div>
             {formData.structureType === 'Without Structure' && (
-              <div>
-                <label className="block text-xs uppercase font-black text-red-600 mb-1">Customized Structure Cost (₹)</label>
-                <input 
-                  type="number" 
-                  value={pCustStruct ?? ''} 
-                  onChange={e => setFormData({ ...formData, pricing: { ...formData.pricing, customizedStructureCost: Number(e.target.value) } })} 
-                  className="w-full border-2 border-red-100 p-2 rounded shadow-inner bg-white font-bold focus:border-red-500 outline-none" 
-                  placeholder="Enter structure cost"
-                />
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <label className="block text-xs uppercase font-black text-red-600 mb-1">Customized Structure Cost (₹)</label>
+                  <input 
+                    type="number" 
+                    value={pCustStruct ?? ''} 
+                    onChange={e => setFormData({ ...formData, pricing: { ...formData.pricing, customizedStructureCost: Number(e.target.value) } })} 
+                    className="w-full border-2 border-red-100 p-2 rounded shadow-inner bg-white font-bold focus:border-red-500 outline-none" 
+                    placeholder="Enter structure cost"
+                  />
+                </div>
+                <div className="w-1/3">
+                  <label className="block text-xs uppercase font-black text-red-600 mb-1">GST Included?</label>
+                  <select
+                    value={formData.pricing.customizedStructureGst || 'Without GST'}
+                    onChange={e => setFormData({ ...formData, pricing: { ...formData.pricing, customizedStructureGst: e.target.value as 'With GST' | 'Without GST' } })}
+                    className="w-full border-2 border-red-100 p-2 rounded shadow-inner bg-white font-bold focus:border-red-500 outline-none"
+                  >
+                    <option value="With GST">With GST</option>
+                    <option value="Without GST">Without GST</option>
+                  </select>
+                </div>
               </div>
             )}
             {formData.structureType === '1 Meter Flat Roof Structure' && (

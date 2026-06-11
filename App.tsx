@@ -495,8 +495,8 @@ const App: React.FC = () => {
         <div className="fixed inset-0 bg-black/70 flex flex-col items-center justify-center z-[9999] no-print">
           <div className="bg-white p-8 rounded-2xl shadow-2xl flex flex-col items-center text-center">
             <div className="w-14 h-14 border-4 border-red-600 border-t-transparent rounded-full animate-spin mb-6"></div>
-            <h2 className="text-xl font-black text-gray-900 mb-2">Generating Optimized PDF</h2>
-            <p className="text-sm text-gray-500">Compressing graphics for fast sharing while maintaining HD clarity...</p>
+            <h2 className="text-xl font-black text-gray-900 mb-2">Generating Quote</h2>
+            <p className="text-sm text-gray-500">Creating PDF document...</p>
           </div>
         </div>
       )}

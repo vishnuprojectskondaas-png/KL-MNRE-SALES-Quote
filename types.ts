@@ -69,6 +69,7 @@ export interface PricingConfig {
   ksebCharges: number;
   additionalMaterialCost: number;
   customizedStructureCost: number;
+  customizedStructureGst?: 'With GST' | 'Without GST';
   netMeterCost: number;
 }
 
