@@ -163,7 +163,7 @@ const App: React.FC = () => {
         filename: fileName,
         image: { type: 'jpeg', quality: 1.0 },
         html2canvas: { 
-          scale: 2, // Balanced scale for quality and reliability
+          scale: 4, // High scale for maximum crispness/quality
           useCORS: true, 
           logging: false,
           letterRendering: false,
