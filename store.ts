@@ -156,6 +156,9 @@ export const fetchFullState = async (): Promise<AppState> => {
       bomColumnWidths: settingsRow?.bom_column_widths || INITIAL_STATE.bomColumnWidths,
       users: settingsRow?.users || INITIAL_STATE.users,
       attachments: settingsRow?.company?.attachments || INITIAL_STATE.attachments || [],
+      activeProjectTypes: settingsRow?.company?.activeProjectTypes,
+      activeStructureTypes: settingsRow?.company?.activeStructureTypes,
+      activePanelTypes: settingsRow?.company?.activePanelTypes,
       quotations: parsedQuotes,
       nextId: maxId + 1
     };
@@ -172,7 +175,13 @@ export const saveSettingsToLocal = async (state: AppState): Promise<boolean> => 
       .from('settings')
       .upsert({
         singleton_key: SETTINGS_KEY,
-        company: { ...state.company, attachments: state.attachments },
+        company: { 
+          ...state.company, 
+          attachments: state.attachments,
+          activeProjectTypes: state.activeProjectTypes,
+          activeStructureTypes: state.activeStructureTypes,
+          activePanelTypes: state.activePanelTypes
+        },
         bank: state.bank,
         pricing: state.productPricing,
         warranty: state.warrantyPackages,
