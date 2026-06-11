@@ -45,7 +45,8 @@ const QuotationForm: React.FC<Props> = ({ state, currentUser, editData, onSave, 
     systemDescription: editData?.systemDescription || '',
     createdBy: editData?.createdBy || currentUser.id,
     createdByName: editData?.createdByName || currentUser.name,
-    salesPersonMobile: editData?.salesPersonMobile || currentUser.salesPersonMobile || ''
+    salesPersonMobile: editData?.salesPersonMobile || currentUser.salesPersonMobile || '',
+    attachmentIds: editData?.attachmentIds || []
   });
 
   const canEditBasePricing = currentUser.role === 'admin' || currentUser.role === 'TL';
@@ -102,7 +103,8 @@ const QuotationForm: React.FC<Props> = ({ state, currentUser, editData, onSave, 
       ...formData,
       systemDescription: selectedName,
       pricing: newPricing,
-      bom: newBom
+      bom: newBom,
+      attachmentIds: productConfig?.attachmentIds || []
     });
   };
 
@@ -162,7 +164,7 @@ const QuotationForm: React.FC<Props> = ({ state, currentUser, editData, onSave, 
                 className="w-full border-2 border-white shadow-sm p-2 rounded-lg bg-white font-bold text-gray-800 focus:border-red-500 outline-none"
               >
                 <option value="">-- Select Project Type --</option>
-                {PROJECT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                {(state.activeProjectTypes || PROJECT_TYPES).map(t => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
             <div>
@@ -173,7 +175,7 @@ const QuotationForm: React.FC<Props> = ({ state, currentUser, editData, onSave, 
                 className="w-full border-2 border-white shadow-sm p-2 rounded-lg bg-white font-bold text-gray-800 focus:border-red-500 outline-none"
               >
                 <option value="">-- Select Structure --</option>
-                {STRUCTURE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                {(state.activeStructureTypes || STRUCTURE_TYPES).map(t => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
             <div>
@@ -184,7 +186,7 @@ const QuotationForm: React.FC<Props> = ({ state, currentUser, editData, onSave, 
                 className="w-full border-2 border-white shadow-sm p-2 rounded-lg bg-white font-bold text-gray-800 focus:border-red-500 outline-none"
               >
                 <option value="">-- Select Panel Type --</option>
-                {PANEL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                {(state.activePanelTypes || PANEL_TYPES).map(t => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
             
@@ -222,6 +224,32 @@ const QuotationForm: React.FC<Props> = ({ state, currentUser, editData, onSave, 
              <p className="text-[9px] text-primary-red font-bold mt-2 flex items-center gap-1">
                <ChevronRight className="w-3 h-3" /> Please select a product model to auto-load pricing and BOM.
              </p>
+          )}
+
+          {state.attachments && state.attachments.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-gray-100">
+               <label className="block text-[10px] uppercase font-black text-gray-400 mb-2">Include Attachments ({state.attachments.length} available)</label>
+               <div className="flex flex-wrap gap-4">
+                 {state.attachments.map(att => (
+                    <label key={att.id} className="flex items-center gap-2 cursor-pointer bg-white px-3 py-2 border rounded-lg shadow-sm border-gray-200">
+                      <input 
+                        type="checkbox" 
+                        checked={formData.attachmentIds?.includes(att.id) || false}
+                        onChange={(e) => {
+                          const curr = formData.attachmentIds || [];
+                          if (e.target.checked) {
+                            setFormData(prev => ({ ...prev, attachmentIds: [...curr, att.id] }));
+                          } else {
+                            setFormData(prev => ({ ...prev, attachmentIds: curr.filter(id => id !== att.id) }));
+                          }
+                        }}
+                        className="w-4 h-4 text-red-600 rounded"
+                      />
+                      <span className="text-xs font-bold text-gray-800">{att.name}</span>
+                    </label>
+                 ))}
+               </div>
+            </div>
           )}
         </section>
 

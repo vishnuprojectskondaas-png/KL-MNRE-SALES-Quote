@@ -155,6 +155,7 @@ export const fetchFullState = async (): Promise<AppState> => {
       productColumnWidths: settingsRow?.product_column_widths || INITIAL_STATE.productColumnWidths,
       bomColumnWidths: settingsRow?.bom_column_widths || INITIAL_STATE.bomColumnWidths,
       users: settingsRow?.users || INITIAL_STATE.users,
+      attachments: settingsRow?.attachments || INITIAL_STATE.attachments || [],
       quotations: parsedQuotes,
       nextId: maxId + 1
     };
@@ -180,7 +181,8 @@ export const saveSettingsToLocal = async (state: AppState): Promise<boolean> => 
         product_descriptions: state.productDescriptions,
         product_column_widths: state.productColumnWidths,
         bom_column_widths: state.bomColumnWidths,
-        users: state.users
+        users: state.users,
+        attachments: state.attachments
       });
 
     if (error) throw error;

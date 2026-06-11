@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { fetchFullState, saveSettingsToLocal, saveQuotationToLocal, deleteQuotationFromLocal, INITIAL_STATE } from './store';
-import { AppState, Quotation, BOMTemplate, BOMItem, ProductPricing, ProductDescription, User, UserRole, PROJECT_TYPES, STRUCTURE_TYPES, PANEL_TYPES, ProjectType, StructureType, PanelType, WarrantyPackage, Term } from './types';
+import { AppState, Quotation, BOMTemplate, BOMItem, ProductPricing, ProductDescription, User, UserRole, PROJECT_TYPES, STRUCTURE_TYPES, PANEL_TYPES, ProjectType, StructureType, PanelType, WarrantyPackage, Term, Attachment } from './types';
 import AdminPanel from './components/AdminPanel';
 import QuotationForm from './components/QuotationForm';
 import PrintableView from './components/PrintableView';
@@ -24,6 +24,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import * as XLSX from 'xlsx';
 import _html2pdf from 'html2pdf.js';
+import { PDFDocument } from 'pdf-lib';
 
 const html2pdf = (_html2pdf as any).default || _html2pdf;
 
@@ -254,8 +255,54 @@ const App: React.FC = () => {
         }
         
         console.log("Starting PDF generation for:", fileName);
-        await html2pdf().set(opt).from(element).save();
-        console.log("PDF generation completed successfully");
+        
+        let pdfData: Uint8Array | undefined;
+        try {
+          const generatedBuffer = await html2pdf().set(opt).from(element).outputPdf('arraybuffer');
+          pdfData = new Uint8Array(generatedBuffer);
+        } catch (genErr) {
+          console.error("html2pdf arraybuffer generation failed, fallback to save", genErr);
+          await html2pdf().set(opt).from(element).save();
+          return;
+        }
+
+        if (pdfData && q.attachmentIds && q.attachmentIds.length > 0 && state.attachments) {
+          try {
+            console.log("Merging attachments...");
+            const mainPdf = await PDFDocument.load(pdfData);
+            
+            for (const attId of q.attachmentIds) {
+              const attRecord = state.attachments.find(a => a.id === attId);
+              if (attRecord && attRecord.fileData) {
+                try {
+                  const base64Data = attRecord.fileData.split(',')[1];
+                  const attPdf = await PDFDocument.load(base64Data);
+                  const copiedPages = await mainPdf.copyPages(attPdf, attPdf.getPageIndices());
+                  copiedPages.forEach(page => mainPdf.addPage(page));
+                } catch (e) {
+                   console.error("Failed to merge attachment:", attRecord.name, e);
+                }
+              }
+            }
+            
+            pdfData = await mainPdf.save();
+          } catch (mergeErr) {
+             console.error("PDF merge failed:", mergeErr);
+          }
+        }
+
+        // Trigger download
+        const blob = new Blob([pdfData as any], { type: "application/pdf" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        console.log("PDF generation and merge completed successfully");
       } catch (err) {
         console.error("PDF generation failed:", err);
         const errorMessage = err instanceof Error ? err.message : String(err);
@@ -467,6 +514,10 @@ interface SortableProductRowProps {
   columnWidths: Record<string, number>;
   confirmingDeleteId: string | null;
   setConfirmingDeleteId: (id: string | null) => void;
+  activeProjectTypes: ProjectType[];
+  activeStructureTypes: StructureType[];
+  activePanelTypes: PanelType[];
+  attachmentsList: Attachment[];
 }
 
 const SortableProductRow: React.FC<SortableProductRowProps> = ({ 
@@ -476,9 +527,13 @@ const SortableProductRow: React.FC<SortableProductRowProps> = ({
   productsList, 
   pricingList, 
   templatesList,
+  attachmentsList,
   columnWidths,
   confirmingDeleteId,
-  setConfirmingDeleteId
+  setConfirmingDeleteId,
+  activeProjectTypes,
+  activeStructureTypes,
+  activePanelTypes
 }) => {
   const {
     attributes,
@@ -516,7 +571,7 @@ const SortableProductRow: React.FC<SortableProductRowProps> = ({
           value={desc.projectType} 
           onChange={e => updateProductDesc(desc.id, { projectType: e.target.value as ProjectType })}
         >
-          {PROJECT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+          {activeProjectTypes.map(t => <option key={t} value={t}>{t}</option>)}
         </select>
       </td>
       <td className="p-1 border-r" style={{ width: columnWidths.structureType }}>
@@ -525,7 +580,7 @@ const SortableProductRow: React.FC<SortableProductRowProps> = ({
           value={desc.structureType} 
           onChange={e => updateProductDesc(desc.id, { structureType: e.target.value as StructureType })}
         >
-          {STRUCTURE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+          {activeStructureTypes.map(t => <option key={t} value={t}>{t}</option>)}
         </select>
       </td>
       <td className="p-1 border-r" style={{ width: columnWidths.panelType }}>
@@ -534,7 +589,7 @@ const SortableProductRow: React.FC<SortableProductRowProps> = ({
           value={desc.panelType} 
           onChange={e => updateProductDesc(desc.id, { panelType: e.target.value as PanelType })}
         >
-          {PANEL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+          {activePanelTypes.map(t => <option key={t} value={t}>{t}</option>)}
         </select>
       </td>
       <td className="p-1 border-r" style={{ width: columnWidths.pricing }}>
@@ -556,6 +611,29 @@ const SortableProductRow: React.FC<SortableProductRowProps> = ({
           <option value="">-- No Auto-Link --</option>
           {templatesList.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
         </select>
+      </td>
+      <td className="p-1 border-r" style={{ width: columnWidths.attachments || 150 }}>
+        <div className="flex flex-col gap-1 p-2 max-h-24 overflow-y-auto w-full text-[10px] font-bold">
+          {attachmentsList.map(att => (
+            <label key={att.id} className="flex items-center gap-1 cursor-pointer truncate">
+              <input 
+                type="checkbox"
+                className="w-3 h-3 text-red-600 rounded"
+                checked={desc.attachmentIds?.includes(att.id) || false}
+                onChange={(e) => {
+                  const curr = desc.attachmentIds || [];
+                  if (e.target.checked) {
+                    updateProductDesc(desc.id, { attachmentIds: [...curr, att.id] });
+                  } else {
+                    updateProductDesc(desc.id, { attachmentIds: curr.filter(id => id !== att.id) });
+                  }
+                }}
+              />
+              <span className="truncate">{att.name}</span>
+            </label>
+          ))}
+          {attachmentsList.length === 0 && <span className="text-gray-400">No attachments</span>}
+        </div>
       </td>
       <td className="p-2 text-center">
         <div className="flex justify-center gap-1">
@@ -744,7 +822,7 @@ const SettingsView: React.FC<{
   onUpdate: (s: AppState) => Promise<void>,
   onUpdateState?: (updater: (prev: AppState) => AppState) => void
 }> = ({ state, onUpdate, onUpdateState }) => {
-  const [activeSubTab, setActiveSubTab] = useState<'company' | 'users' | 'pricing' | 'terms' | 'bank' | 'warranty' | 'bom' | 'products' | 'clear-data'>('company');
+  const [activeSubTab, setActiveSubTab] = useState<'company' | 'users' | 'pricing' | 'terms' | 'bank' | 'warranty' | 'bom' | 'products' | 'attachments' | 'clear-data'>('company');
   const [bomView, setBomView] = useState<'templates' | 'master'>('templates');
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [expandedTemplateId, setExpandedTemplateId] = useState<string | null>(null);
@@ -757,8 +835,34 @@ const SettingsView: React.FC<{
   const [filterPanelType, setFilterPanelType] = useState<string>('All');
   const [bomSearch, setBomSearch] = useState<string>('');
   const [showMasterSelection, setShowMasterSelection] = useState(false);
-
   const [newUser, setNewUser] = useState<Partial<User>>({ role: 'user', name: '', username: '', password: '', salesPersonName: '', salesPersonMobile: '' });
+
+  const [newAttachmentName, setNewAttachmentName] = useState('');
+  const [newAttachmentFile, setNewAttachmentFile] = useState<string>('');
+  
+  const handleAttachmentUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && file.type === 'application/pdf') {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setNewAttachmentFile(event.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      alert("Please upload a valid PDF file.");
+    }
+  };
+
+  const handleAddAttachment = () => {
+    if (!newAttachmentName.trim() || !newAttachmentFile) {
+      alert("Please provide a name and upload a PDF file.");
+      return;
+    }
+    const newAtt = { id: Date.now().toString(), name: newAttachmentName.trim(), fileData: newAttachmentFile };
+    onUpdateState?.(prev => ({ ...prev, attachments: [...(prev.attachments || []), newAtt] }));
+    setNewAttachmentName('');
+    setNewAttachmentFile('');
+  };
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
 
   const pricingList = state.productPricing || [];
@@ -767,6 +871,10 @@ const SettingsView: React.FC<{
   const termsList = state.terms || [];
   const usersList = state.users || [];
   const warrantiesList = state.warrantyPackages || [];
+
+  const activeProjTypes = state.activeProjectTypes || PROJECT_TYPES;
+  const activeStructTypes = state.activeStructureTypes || STRUCTURE_TYPES;
+  const activePanTypes = state.activePanelTypes || PANEL_TYPES;
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -1475,13 +1583,13 @@ const SettingsView: React.FC<{
       </div>
 
       <div className="flex border-b border-gray-200 bg-gray-50 overflow-x-auto">
-        {(['company', 'users', 'pricing', 'terms', 'bank', 'warranty', 'bom', 'products', 'clear-data'] as const).map(tab => (
+        {(['company', 'users', 'pricing', 'terms', 'bank', 'warranty', 'bom', 'products', 'attachments', 'clear-data'] as const).map(tab => (
           <button
             key={tab}
             onClick={() => { setActiveSubTab(tab); setEditingItemId(null); }}
             className={`px-6 py-4 text-sm font-medium capitalize whitespace-nowrap transition-colors ${activeSubTab === tab ? 'text-red-600 border-b-2 border-red-600 bg-white' : 'text-gray-500 hover:text-gray-700'}`}
           >
-            {tab === 'bom' ? 'BOM Templates' : tab === 'products' ? 'Product Names & Links' : tab === 'pricing' ? 'Pricing Table' : tab === 'clear-data' ? 'Clear Data' : tab}
+            {tab === 'bom' ? 'BOM Templates' : tab === 'products' ? 'Product Names & Links' : tab === 'pricing' ? 'Pricing Table' : tab === 'clear-data' ? 'Clear Data' : tab === 'attachments' ? 'PDF Attachments' : tab}
           </button>
         ))}
       </div>
@@ -1501,7 +1609,7 @@ const SettingsView: React.FC<{
                  onChange={e => setFilterProjectType(e.target.value)}
                >
                  <option value="All">All Project Types</option>
-                 {PROJECT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                 {activeProjTypes.map(t => <option key={t} value={t}>{t}</option>)}
                </select>
                <select 
                  className="text-xs font-bold border rounded p-1.5 bg-white outline-none focus:ring-1 focus:ring-red-500"
@@ -1509,7 +1617,7 @@ const SettingsView: React.FC<{
                  onChange={e => setFilterStructureType(e.target.value)}
                >
                  <option value="All">All Structure Types</option>
-                 {STRUCTURE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                 {activeStructTypes.map(t => <option key={t} value={t}>{t}</option>)}
                </select>
                <select 
                  className="text-xs font-bold border rounded p-1.5 bg-white outline-none focus:ring-1 focus:ring-red-500"
@@ -1517,7 +1625,7 @@ const SettingsView: React.FC<{
                  onChange={e => setFilterPanelType(e.target.value)}
                >
                  <option value="All">All Panel Types</option>
-                 {PANEL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                 {activePanTypes.map(t => <option key={t} value={t}>{t}</option>)}
                </select>
              </>
 
@@ -1611,7 +1719,7 @@ const SettingsView: React.FC<{
                    </div>
                 </div>
              </div>
-             <div className="border rounded-lg overflow-hidden bg-white shadow-sm">
+             <div className="border rounded-lg overflow-hidden bg-white shadow-sm mb-6">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50"><tr className="text-[10px] font-black text-gray-400 uppercase tracking-widest"><th className="px-6 py-4 text-left">Staff Name</th><th className="px-6 py-4 text-left">Login ID</th><th className="px-6 py-4 text-left">Sales Profile</th><th className="px-6 py-4 text-left">System Role</th><th className="px-6 py-4 text-right">Actions</th></tr></thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -1634,6 +1742,72 @@ const SettingsView: React.FC<{
                      ))}
                   </tbody>
                 </table>
+             </div>
+
+             <div className="bg-white border rounded-lg p-6 shadow-sm">
+                <h4 className="text-md font-bold mb-4">Active System Types (Project / Product)</h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <label className="text-[10px] uppercase font-black text-gray-400 mb-2 block border-b pb-1">Project Types</label>
+                    <div className="space-y-2 mt-2">
+                       {PROJECT_TYPES.map(type => {
+                          const isActive = state.activeProjectTypes ? state.activeProjectTypes.includes(type) : true;
+                          return (
+                            <label key={type} className="flex items-center gap-2 cursor-pointer">
+                              <input type="checkbox" checked={isActive} onChange={(e) => {
+                                 onUpdateState?.(prev => {
+                                    const current = prev.activeProjectTypes || [...PROJECT_TYPES];
+                                    const next = e.target.checked ? [...current, type] : current.filter(t => t !== type);
+                                    return { ...prev, activeProjectTypes: next };
+                                 });
+                              }} className="w-4 h-4 text-blue-600 rounded" />
+                              <span className="text-sm font-medium">{type}</span>
+                            </label>
+                          );
+                       })}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase font-black text-gray-400 mb-2 block border-b pb-1">Structure Types</label>
+                    <div className="space-y-2 mt-2">
+                       {STRUCTURE_TYPES.map(type => {
+                          const isActive = state.activeStructureTypes ? state.activeStructureTypes.includes(type) : true;
+                          return (
+                            <label key={type} className="flex items-center gap-2 cursor-pointer">
+                              <input type="checkbox" checked={isActive} onChange={(e) => {
+                                 onUpdateState?.(prev => {
+                                    const current = prev.activeStructureTypes || [...STRUCTURE_TYPES];
+                                    const next = e.target.checked ? [...current, type] : current.filter(t => t !== type);
+                                    return { ...prev, activeStructureTypes: next };
+                                 });
+                              }} className="w-4 h-4 text-blue-600 rounded" />
+                              <span className="text-sm font-medium">{type}</span>
+                            </label>
+                          );
+                       })}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase font-black text-gray-400 mb-2 block border-b pb-1">Panel Types</label>
+                    <div className="space-y-2 mt-2">
+                       {PANEL_TYPES.map(type => {
+                          const isActive = state.activePanelTypes ? state.activePanelTypes.includes(type) : true;
+                          return (
+                            <label key={type} className="flex items-center gap-2 cursor-pointer">
+                              <input type="checkbox" checked={isActive} onChange={(e) => {
+                                 onUpdateState?.(prev => {
+                                    const current = prev.activePanelTypes || [...PANEL_TYPES];
+                                    const next = e.target.checked ? [...current, type] : current.filter(t => t !== type);
+                                    return { ...prev, activePanelTypes: next };
+                                 });
+                              }} className="w-4 h-4 text-blue-600 rounded" />
+                              <span className="text-sm font-medium">{type}</span>
+                            </label>
+                          );
+                       })}
+                    </div>
+                  </div>
+                </div>
              </div>
           </div>
         )}
@@ -1694,7 +1868,7 @@ const SettingsView: React.FC<{
                           value={p.projectType} 
                           onChange={e => updatePricingItem(p.id, { projectType: e.target.value as ProjectType })}
                         >
-                          {PROJECT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                          {activeProjTypes.map(t => <option key={t} value={t}>{t}</option>)}
                         </select>
                       </td>
                       <td className="p-1 border-r">
@@ -1703,7 +1877,7 @@ const SettingsView: React.FC<{
                           value={p.structureType} 
                           onChange={e => updatePricingItem(p.id, { structureType: e.target.value as StructureType })}
                         >
-                          {STRUCTURE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                          {activeStructTypes.map(t => <option key={t} value={t}>{t}</option>)}
                         </select>
                       </td>
                       <td className="p-1 border-r">
@@ -1712,7 +1886,7 @@ const SettingsView: React.FC<{
                           value={p.panelType} 
                           onChange={e => updatePricingItem(p.id, { panelType: e.target.value as PanelType })}
                         >
-                          {PANEL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                          {activePanTypes.map(t => <option key={t} value={t}>{t}</option>)}
                         </select>
                       </td>
                       <td className="p-1 border-r">
@@ -1837,6 +2011,7 @@ const SettingsView: React.FC<{
                       <ResizableHeader label="Panel" width={columnWidths.panelType} onResize={(w) => updateColumnWidth('panelType', w)} />
                       <ResizableHeader label="Linked Pricing" width={columnWidths.pricing} onResize={(w) => updateColumnWidth('pricing', w)} />
                       <ResizableHeader label="Linked BOM" width={columnWidths.bom} onResize={(w) => updateColumnWidth('bom', w)} />
+                      <ResizableHeader label="Attachments" width={columnWidths.attachments || 150} onResize={(w) => updateColumnWidth('attachments', w)} />
                       <th className="p-3 text-[10px] font-black uppercase text-gray-500 text-center">Actions</th>
                     </tr>
                   </thead>
@@ -1857,6 +2032,10 @@ const SettingsView: React.FC<{
                           columnWidths={columnWidths}
                           confirmingDeleteId={confirmingDeleteId}
                           setConfirmingDeleteId={setConfirmingDeleteId}
+                          activeProjectTypes={activeProjTypes}
+                          activeStructureTypes={activeStructTypes}
+                          activePanelTypes={activePanTypes}
+                          attachmentsList={state.attachments || []}
                         />
                       ))}
                     </SortableContext>
@@ -1944,9 +2123,9 @@ const SettingsView: React.FC<{
                     </div>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
-                    <select className="text-[9px] font-bold border rounded p-1.5 bg-white" value={term.projectType || 'Ongrid Subsidy'} onChange={e => updateSub('terms', (prev: Term[]) => (prev || []).map(t => t.id === term.id ? { ...t, projectType: e.target.value as ProjectType } : t))}>{PROJECT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select>
-                    <select className="text-[9px] font-bold border rounded p-1.5 bg-white" value={term.structureType || '2 Meter Flat Roof Structure'} onChange={e => updateSub('terms', (prev: Term[]) => (prev || []).map(t => t.id === term.id ? { ...t, structureType: e.target.value as StructureType } : t))}>{STRUCTURE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select>
-                    <select className="text-[9px] font-bold border rounded p-1.5 bg-white" value={term.panelType || 'TOPCON G12R'} onChange={e => updateSub('terms', (prev: Term[]) => (prev || []).map(t => t.id === term.id ? { ...t, panelType: e.target.value as PanelType } : t))}>{PANEL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select>
+                    <select className="text-[9px] font-bold border rounded p-1.5 bg-white" value={term.projectType || 'Ongrid Subsidy'} onChange={e => updateSub('terms', (prev: Term[]) => (prev || []).map(t => t.id === term.id ? { ...t, projectType: e.target.value as ProjectType } : t))}>{activeProjTypes.map(t => <option key={t} value={t}>{t}</option>)}</select>
+                    <select className="text-[9px] font-bold border rounded p-1.5 bg-white" value={term.structureType || '2 Meter Flat Roof Structure'} onChange={e => updateSub('terms', (prev: Term[]) => (prev || []).map(t => t.id === term.id ? { ...t, structureType: e.target.value as StructureType } : t))}>{activeStructTypes.map(t => <option key={t} value={t}>{t}</option>)}</select>
+                    <select className="text-[9px] font-bold border rounded p-1.5 bg-white" value={term.panelType || 'TOPCON G12R'} onChange={e => updateSub('terms', (prev: Term[]) => (prev || []).map(t => t.id === term.id ? { ...t, panelType: e.target.value as PanelType } : t))}>{activePanTypes.map(t => <option key={t} value={t}>{t}</option>)}</select>
                   </div>
                 </div>
               ))}
@@ -2022,9 +2201,9 @@ const SettingsView: React.FC<{
                   {editingItemId === w.id && (
                     <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
                       <div className="md:col-span-2 border-b pb-4 mb-2 grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Project Type</label><select className="w-full border p-2 rounded text-xs font-bold bg-white" value={w.projectType || 'Ongrid Subsidy'} onChange={e => updateWarrantyPackage(w.id, { projectType: e.target.value as ProjectType })}>{PROJECT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
-                        <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Structure Type</label><select className="w-full border p-2 rounded text-xs font-bold bg-white" value={w.structureType || '2 Meter Flat Roof Structure'} onChange={e => updateWarrantyPackage(w.id, { structureType: e.target.value as StructureType })}>{STRUCTURE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
-                        <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Panel Type</label><select className="w-full border p-2 rounded text-xs font-bold bg-white" value={w.panelType || 'TOPCON G12R'} onChange={e => updateWarrantyPackage(w.id, { panelType: e.target.value as PanelType })}>{PANEL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+                        <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Project Type</label><select className="w-full border p-2 rounded text-xs font-bold bg-white" value={w.projectType || 'Ongrid Subsidy'} onChange={e => updateWarrantyPackage(w.id, { projectType: e.target.value as ProjectType })}>{activeProjTypes.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+                        <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Structure Type</label><select className="w-full border p-2 rounded text-xs font-bold bg-white" value={w.structureType || '2 Meter Flat Roof Structure'} onChange={e => updateWarrantyPackage(w.id, { structureType: e.target.value as StructureType })}>{activeStructTypes.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+                        <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Panel Type</label><select className="w-full border p-2 rounded text-xs font-bold bg-white" value={w.panelType || 'TOPCON G12R'} onChange={e => updateWarrantyPackage(w.id, { panelType: e.target.value as PanelType })}>{activePanTypes.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
                       </div>
                       <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Solar Panel Warranty</label><input value={w.panelWarranty || ''} onChange={e => updateWarrantyPackage(w.id, { panelWarranty: e.target.value })} className="w-full border p-3 rounded-lg bg-white font-medium" /></div>
                       <div><label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Inverter Warranty</label><input value={w.inverterWarranty || ''} onChange={e => updateWarrantyPackage(w.id, { inverterWarranty: e.target.value })} className="w-full border p-3 rounded-lg bg-white font-medium" /></div>
@@ -2266,6 +2445,46 @@ const SettingsView: React.FC<{
           </div>
         )}
 
+        {activeSubTab === 'attachments' && (
+          <div className="space-y-6">
+            <h3 className="text-lg font-bold">PDF Attachments</h3>
+            <div className="p-6 rounded-lg border bg-gray-50 shadow-inner">
+               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end mb-4">
+                  <div className="md:col-span-1">
+                    <label className="text-[10px] uppercase font-black text-gray-400 mb-1 block">Attachment Name</label>
+                    <input className="w-full border p-2 rounded bg-white" placeholder="e.g. Terms & Conditions PDF" value={newAttachmentName} onChange={e => setNewAttachmentName(e.target.value)} />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="text-[10px] uppercase font-black text-gray-400 mb-1 block">Upload PDF File</label>
+                    <input type="file" accept="application/pdf" className="w-full border p-2 rounded bg-white" onChange={handleAttachmentUpload} />
+                    {newAttachmentFile && <p className="text-[10px] text-green-600 font-bold mt-1">PDF File Ready</p>}
+                  </div>
+                  <div className="md:col-span-1">
+                    <button onClick={handleAddAttachment} className="w-full bg-black text-white px-4 py-2 rounded font-bold hover:bg-gray-800 flex items-center justify-center gap-2">
+                      <Plus className="w-4 h-4" /> Add Attachment
+                    </button>
+                  </div>
+               </div>
+            </div>
+            <div className="border rounded-lg overflow-hidden bg-white shadow-sm mb-6">
+               <table className="min-w-full divide-y divide-gray-200">
+                 <thead className="bg-gray-50"><tr className="text-[10px] font-black text-gray-400 uppercase tracking-widest"><th className="px-6 py-4 text-left w-2/3">Attachment Name</th><th className="px-6 py-4 text-right">Actions</th></tr></thead>
+                 <tbody className="bg-white divide-y divide-gray-200">
+                   {(state.attachments || []).map(att => (
+                     <tr key={att.id} className="hover:bg-gray-50 transition-colors">
+                       <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{att.name}</td>
+                       <td className="px-6 py-4 text-right">
+                          <button onClick={() => confirm('Delete attachment?') && onUpdateState?.(prev => ({ ...prev, attachments: (prev.attachments || []).filter(a => a.id !== att.id) }))} className="p-2 text-gray-400 hover:text-red-600 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                       </td>
+                     </tr>
+                   ))}
+                   {!(state.attachments?.length) && <tr><td colSpan={2} className="px-6 py-4 text-center text-gray-400 whitespace-nowrap text-xs">No attachments added yet.</td></tr>}
+                 </tbody>
+               </table>
+            </div>
+          </div>
+        )}
+
         {activeSubTab === 'clear-data' && (
           <div className="space-y-6 max-w-2xl">
             <h3 className="text-lg font-bold text-red-600 flex items-center gap-2">
@@ -2313,6 +2532,19 @@ const SettingsView: React.FC<{
                     className="bg-red-600 text-white px-4 py-2 rounded text-xs font-bold hover:bg-red-700 shadow-sm"
                   >
                     Clear Products
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between p-4 bg-white rounded border border-red-100 shadow-sm">
+                  <div>
+                    <h4 className="font-bold text-gray-900">Clear BOM Templates</h4>
+                    <p className="text-xs text-gray-500">Deletes all saved BOM templates and Master BOMs ({templatesList.length} items)</p>
+                  </div>
+                  <button 
+                    onClick={() => confirm('Are you sure you want to delete ALL BOM Templates and Master BOMs?') && confirm('Double checking: Delete ALL BOMs?') && onUpdateState?.(prev => ({ ...prev, bomTemplates: [] }))}
+                    className="bg-red-600 text-white px-4 py-2 rounded text-xs font-bold hover:bg-red-700 shadow-sm"
+                  >
+                    Clear BOMs
                   </button>
                 </div>
               </div>

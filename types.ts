@@ -127,6 +127,7 @@ export interface ProductDescription {
   defaultPricingId?: string;
   defaultBomTemplateId?: string;
   order?: number;
+  attachmentIds?: string[];
 }
 
 export type UserRole = 'admin' | 'user' | 'TL';
@@ -139,6 +140,12 @@ export interface User {
   role: UserRole;
   salesPersonName?: string;
   salesPersonMobile?: string;
+}
+
+export interface Attachment {
+  id: string;
+  name: string;
+  fileData: string; // Base64 encoded PDF
 }
 
 export interface Quotation {
@@ -160,6 +167,7 @@ export interface Quotation {
   createdBy: string;
   createdByName: string;
   salesPersonMobile?: string;
+  attachmentIds?: string[];
 }
 
 export interface AppState {
@@ -174,6 +182,10 @@ export interface AppState {
   bomColumnWidths?: Record<string, number>;
   users: User[];
   quotations: Quotation[];
+  attachments?: Attachment[];
   nextId: number;
   maintenanceMode?: boolean;
+  activeProjectTypes?: ProjectType[];
+  activeStructureTypes?: StructureType[];
+  activePanelTypes?: PanelType[];
 }
