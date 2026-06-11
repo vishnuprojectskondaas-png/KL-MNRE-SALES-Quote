@@ -155,7 +155,7 @@ export const fetchFullState = async (): Promise<AppState> => {
       productColumnWidths: settingsRow?.product_column_widths || INITIAL_STATE.productColumnWidths,
       bomColumnWidths: settingsRow?.bom_column_widths || INITIAL_STATE.bomColumnWidths,
       users: settingsRow?.users || INITIAL_STATE.users,
-      attachments: settingsRow?.attachments || INITIAL_STATE.attachments || [],
+      attachments: settingsRow?.company?.attachments || INITIAL_STATE.attachments || [],
       quotations: parsedQuotes,
       nextId: maxId + 1
     };
@@ -172,7 +172,7 @@ export const saveSettingsToLocal = async (state: AppState): Promise<boolean> => 
       .from('settings')
       .upsert({
         singleton_key: SETTINGS_KEY,
-        company: state.company,
+        company: { ...state.company, attachments: state.attachments },
         bank: state.bank,
         pricing: state.productPricing,
         warranty: state.warrantyPackages,
@@ -181,8 +181,7 @@ export const saveSettingsToLocal = async (state: AppState): Promise<boolean> => 
         product_descriptions: state.productDescriptions,
         product_column_widths: state.productColumnWidths,
         bom_column_widths: state.bomColumnWidths,
-        users: state.users,
-        attachments: state.attachments
+        users: state.users
       });
 
     if (error) throw error;
