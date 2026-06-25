@@ -158,12 +158,14 @@ const App: React.FC = () => {
         ? `${q.systemDescription.replace(/\s+/g, '_')}.pdf`
         : `${q.customerName.replace(/\s+/g, '_')}_${q.id}.pdf`;
 
+      const isLoanQuote = q.quoteType === 'Loan';
+
       const opt = {
         margin: 0,
         filename: fileName,
-        image: { type: 'jpeg', quality: 1.0 },
+        image: { type: 'jpeg', quality: isLoanQuote ? 0.75 : 1.0 },
         html2canvas: { 
-          scale: 4, // High scale for maximum crispness/quality
+          scale: isLoanQuote ? 1.5 : 4, // High scale for standard, lower scale for loan to keep < 1MB
           useCORS: true, 
           logging: false,
           letterRendering: false,
@@ -266,7 +268,7 @@ const App: React.FC = () => {
           return;
         }
 
-        if (pdfData && q.attachmentIds && q.attachmentIds.length > 0 && state.attachments) {
+        if (pdfData && q.quoteType !== 'Loan' && q.attachmentIds && q.attachmentIds.length > 0 && state.attachments) {
           try {
             console.log("Merging attachments...");
             const mainPdf = await PDFDocument.load(pdfData);

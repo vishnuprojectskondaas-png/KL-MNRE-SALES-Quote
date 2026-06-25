@@ -28,6 +28,7 @@ const QuotationForm: React.FC<Props> = ({ state, currentUser, editData, onSave, 
     mobile: editData?.mobile || '',
     email: editData?.email || '',
     location: editData?.location || '',
+    quoteType: editData?.quoteType || '',
     projectType: editData?.projectType || '',
     structureType: editData?.structureType || '',
     panelType: editData?.panelType || '',
@@ -251,6 +252,14 @@ const QuotationForm: React.FC<Props> = ({ state, currentUser, editData, onSave, 
             <div>
               <label className="block text-sm text-gray-600 mb-1 font-bold">Email</label>
               <input type="email" value={formData.email || ''} onChange={e => setFormData({ ...formData, email: e.target.value })} className="w-full border p-2 rounded focus:ring-2 focus:ring-red-500 outline-none" />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-600 mb-1 font-bold">Type of Quote</label>
+              <select required value={formData.quoteType || ''} onChange={e => setFormData({ ...formData, quoteType: e.target.value as any })} className="w-full border p-2 rounded focus:ring-2 focus:ring-red-500 outline-none bg-white">
+                <option value="">-- Select Type --</option>
+                <option value="Loan">Loan</option>
+                <option value="Customer">Customer</option>
+              </select>
             </div>
           </div>
         </section>

@@ -120,7 +120,6 @@ const AdminPanel: React.FC<Props> = ({ state, currentUser, onEdit, onPrint, onDo
                 <th className="px-6 py-4 text-left">Quote ID</th>
                 <th className="px-6 py-4 text-left">Date & Customer</th>
                 <th className="px-6 py-4 text-left">Project Configuration</th>
-                <th className="px-6 py-4 text-left">Net Amount</th>
                 <th className="px-6 py-4 text-right">Actions</th>
               </tr>
             </thead>
@@ -146,7 +145,6 @@ const AdminPanel: React.FC<Props> = ({ state, currentUser, onEdit, onPrint, onDo
                       <span className="text-[9px] font-bold uppercase text-gray-400 ml-4.5">{q.structureType}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-black text-gray-900">₹ {finalTotal.toLocaleString('en-IN')}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-1">
                     <div className="flex items-center justify-end gap-1">
                     <button onClick={() => onDownload(q)} className="text-indigo-600 hover:bg-indigo-50 p-2 rounded-lg transition-colors" title="Download PDF"><Download className="w-5 h-5" /></button>

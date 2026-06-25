@@ -158,6 +158,7 @@ export interface Quotation {
   mobile: string;
   email: string;
   location: string;
+  quoteType?: 'Loan' | 'Customer' | '';
   projectType: ProjectType | '';
   structureType: StructureType | '';
   panelType: PanelType | '';

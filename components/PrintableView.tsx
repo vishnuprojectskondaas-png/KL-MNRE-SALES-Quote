@@ -81,7 +81,9 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
 
   const afterDiscount = actualPlantCost - discount;
   const afterSubsidy = afterDiscount - subsidyAmount;
-  const grandTotal = afterSubsidy + ksebCharges + customizedStructureCost + additionalMaterialCost + netMeterCost;
+  const grandTotal = quotation.quoteType === 'Loan'
+    ? afterDiscount + ksebCharges + customizedStructureCost + additionalMaterialCost + netMeterCost
+    : afterSubsidy + ksebCharges + customizedStructureCost + additionalMaterialCost + netMeterCost;
 
   const isWithoutStructure = quotation.structureType === 'Without Structure';
   const hasCustomizedStructureCost = customizedStructureCost > 0;
@@ -187,6 +189,12 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
                 <span className="text-black font-black uppercase text-[6.5pt] tracking-widest opacity-40">MOBILE:</span>
                 <span className="text-black">{quotation.mobile}</span>
               </div>
+              {quotation.quoteType && (
+                <div className="flex items-center gap-2">
+                  <span className="text-black font-black uppercase text-[6.5pt] tracking-widest opacity-40">TYPE:</span>
+                  <span className="text-black uppercase">{quotation.quoteType}</span>
+                </div>
+              )}
             </div>
             <div className="flex items-start gap-2 border-t border-gray-200-50 pt-1.5">
               <span className="text-black font-black uppercase text-[6.5pt] tracking-widest opacity-40 pt-0.5">ADDRESS:</span>
@@ -221,31 +229,43 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
                 </tr>
               </thead>
               <tbody className="text-[8.5pt] font-bold">
-                <tr>
-                  <td className="text-center text-gray-300 font-black">01</td>
-                  <td className="py-2 uppercase tracking-tight text-gray-800">ACTUAL PLANT COST of {quotation.systemDescription}</td>
-                  <td className="text-right font-black pr-10 text-black text-[11pt]">₹ {actualPlantCost.toLocaleString('en-IN')}</td>
-                </tr>
-                <tr>
-                  <td className="text-center text-gray-300 font-black">02</td>
-                  <td className="py-2 uppercase tracking-tight text-green-600">Limited Period Discount</td>
-                  <td className="text-right font-black pr-10 text-green-600 text-[11pt]">(-) ₹ {discount.toLocaleString('en-IN')}</td>
-                </tr>
-                <tr className="bg-gray-50 border-t border-b">
-                  <td className="text-center text-gray-400 font-black">-</td>
-                  <td className="py-2 uppercase font-black text-gray-900 tracking-tighter text-[7.5pt] leading-tight">Amount To Be Paid by The Customer to Kondaas After Limited Period Discount</td>
-                  <td className="text-right font-black pr-10 text-black text-[11pt]">₹ {afterDiscount.toLocaleString('en-IN')}</td>
-                </tr>
-                <tr>
-                  <td className="text-center text-red-200 font-black">03</td>
-                  <td className="py-2 uppercase tracking-tight text-red-700 leading-snug">Subsidy Amount as Per PM Surya Ghar Approved Guidelines</td>
-                  <td className="text-right font-black pr-10 text-red-600 text-[11pt]">(-) ₹ {subsidyAmount.toLocaleString('en-IN')}</td>
-                </tr>
-                <tr className="bg-red-50">
-                  <td className="text-center text-red-600 font-black">-</td>
-                  <td className="py-2 uppercase font-black text-red-600 tracking-tighter">on-grid ROOFTOP SOLAR POWER PLANT COST AFTER SUBSIDY</td>
-                  <td className="text-right font-black pr-10 text-red-600 text-[14pt]">₹ {afterSubsidy.toLocaleString('en-IN')}</td>
-                </tr>
+                {quotation.quoteType === 'Loan' ? (
+                  <>
+                    <tr>
+                      <td className="text-center text-gray-300 font-black">01</td>
+                      <td className="py-2 uppercase tracking-tight text-gray-800">PLANT COST of {quotation.systemDescription}</td>
+                      <td className="text-right font-black pr-10 text-black text-[11pt]">₹ {afterDiscount.toLocaleString('en-IN')}</td>
+                    </tr>
+                  </>
+                ) : (
+                  <>
+                    <tr>
+                      <td className="text-center text-gray-300 font-black">01</td>
+                      <td className="py-2 uppercase tracking-tight text-gray-800">ACTUAL PLANT COST of {quotation.systemDescription}</td>
+                      <td className="text-right font-black pr-10 text-black text-[11pt]">₹ {actualPlantCost.toLocaleString('en-IN')}</td>
+                    </tr>
+                    <tr>
+                      <td className="text-center text-gray-300 font-black">02</td>
+                      <td className="py-2 uppercase tracking-tight text-green-600">Limited Period Discount</td>
+                      <td className="text-right font-black pr-10 text-green-600 text-[11pt]">(-) ₹ {discount.toLocaleString('en-IN')}</td>
+                    </tr>
+                    <tr className="bg-gray-50 border-t border-b">
+                      <td className="text-center text-gray-400 font-black">-</td>
+                      <td className="py-2 uppercase font-black text-gray-900 tracking-tighter text-[7.5pt] leading-tight">Amount To Be Paid by The Customer to Kondaas After Limited Period Discount</td>
+                      <td className="text-right font-black pr-10 text-black text-[11pt]">₹ {afterDiscount.toLocaleString('en-IN')}</td>
+                    </tr>
+                    <tr>
+                      <td className="text-center text-red-200 font-black">03</td>
+                      <td className="py-2 uppercase tracking-tight text-red-700 leading-snug">Subsidy Amount as Per PM Surya Ghar Approved Guidelines</td>
+                      <td className="text-right font-black pr-10 text-red-600 text-[11pt]">(-) ₹ {subsidyAmount.toLocaleString('en-IN')}</td>
+                    </tr>
+                    <tr className="bg-red-50">
+                      <td className="text-center text-red-600 font-black">-</td>
+                      <td className="py-2 uppercase font-black text-red-600 tracking-tighter">on-grid ROOFTOP SOLAR POWER PLANT COST AFTER SUBSIDY</td>
+                      <td className="text-right font-black pr-10 text-red-600 text-[14pt]">₹ {afterSubsidy.toLocaleString('en-IN')}</td>
+                    </tr>
+                  </>
+                )}
               </tbody>
             </table>
           </div>
@@ -261,12 +281,12 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
               </thead>
               <tbody className="text-[8pt] font-bold">
                 <tr>
-                  <td className="text-center text-gray-300 !py-1">04</td>
+                  <td className="text-center text-gray-300 !py-1">0{quotation.quoteType === 'Loan' ? 3 : 4}</td>
                   <td className="!py-1 uppercase text-gray-600">KSEB Charges</td>
                   <td className="text-right font-black pr-10 text-gray-900 !py-1 text-[10pt] whitespace-nowrap">₹ {ksebCharges.toLocaleString('en-IN')}</td>
                 </tr>
                 <tr>
-                  <td className="text-center text-gray-300 !py-1">05</td>
+                  <td className="text-center text-gray-300 !py-1">0{quotation.quoteType === 'Loan' ? 4 : 5}</td>
                   <td className="!py-1 uppercase text-gray-600">
                     {quotation.structureType === '1 Meter Flat Roof Structure' ? '4 Feet Flat Roof Structure Cost' : `Customized Structure Cost(${customizedStructureGst})`}
                   </td>
@@ -280,7 +300,7 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
                   </td>
                 </tr>
                 <tr>
-                  <td className="text-center text-gray-300 !py-1">06</td>
+                  <td className="text-center text-gray-300 !py-1">0{quotation.quoteType === 'Loan' ? 5 : 6}</td>
                   <td className="!py-1 uppercase text-gray-600">Additional Material Cost (If Applicable)</td>
                   <td className="text-right font-black pr-10 text-gray-900 !py-1 text-[10pt] whitespace-nowrap">
                     {isPendingSurvey && additionalMaterialCost === 0 
@@ -290,7 +310,7 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
                   </td>
                 </tr>
                 <tr>
-                  <td className="text-center text-gray-300 !py-1">07</td>
+                  <td className="text-center text-gray-300 !py-1">0{quotation.quoteType === 'Loan' ? 6 : 7}</td>
                   <td className="!py-1 uppercase text-gray-600 text-[7pt]">scope of NET METER</td>
                   <td className="text-right font-black pr-10 text-gray-900 !py-1 text-[10pt] whitespace-nowrap">
                     {netMeterCost === 0 
@@ -302,36 +322,55 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
               </tbody>
             </table>
 
-            <div className="pricing-summary-row h-auto py-4">
-              <div className="flex-1 pr-4 overflow-visible min-w-0 text-left">
-                <p className="text-[7pt] font-[900] uppercase tracking-tighter leading-tight whitespace-nowrap">CUSTOMER EFFECTIVE COST AFTER SUBSIDY - INCLUDING KSEB CHARGES AS PER THE CURRENT SLAB</p>
-                <div className="text-[5.5pt] text-gray-300 font-bold uppercase tracking-[0.05em] mt-2 opacity-90 leading-relaxed">
-                  INCLUSIVE OF GST, TRANSPORTATION & STANDARD INSTALLATION
-                  {isWithoutStructure && (
-                    <>
-                      <br />
-                      <span className="text-red-500 font-black text-[5pt] leading-none">
-                        {hasCustomizedStructureCost ? `Customized Structure Cost Included ${customizedStructureGst.toLowerCase()}` : 'Customized Structure cost additionally chargeable as per site condition'}
-                      </span>
-                    </>
-                  )}
-                  <br />
-                  CONSUMER NEED TO PAY TOTAL PLANT COST, MNRE SUBSIDY WILL DIRECTLY REACH THE CUSTOMER'S ACCOUNT WITHIN 1-3 MONTH
+            {quotation.quoteType === 'Loan' && (
+              <div className="bg-red-50 border-t border-red-100 flex flex-col">
+                <div className="px-6 py-3 flex justify-between items-center border-b border-red-100">
+                  <span className="text-[8pt] font-black text-red-700 uppercase tracking-tight">Applicable Subsidy Amount as Per PM Surya Ghar Approved Guidelines</span>
+                  <span className="text-[11pt] font-black text-red-600">(-) ₹ {subsidyAmount.toLocaleString('en-IN')}</span>
+                </div>
+                <div className="px-6 py-2 bg-red-50">
+                  <p className="text-[6.5pt] font-black text-red-600 uppercase tracking-widest text-center">
+                    CONSUMER NEED TO PAY TOTAL PLANT COST, MNRE SUBSIDY WILL DIRECTLY REACH THE CUSTOMER'S ACCOUNT WITHIN 1-3 MONTH
+                  </p>
                 </div>
               </div>
-              <div className="text-right min-w-fit flex flex-col justify-center">
-                <span className="text-[26pt] font-black text-white leading-none">₹ {grandTotal.toLocaleString('en-IN')}</span>
+            )}
+
+            {quotation.quoteType !== 'Loan' && (
+              <div className="pricing-summary-row h-auto py-4">
+                <div className="flex-1 pr-4 overflow-visible min-w-0 text-left">
+                  <p className="text-[7pt] font-[900] uppercase tracking-tighter leading-tight whitespace-nowrap">CUSTOMER EFFECTIVE COST AFTER SUBSIDY - INCLUDING KSEB CHARGES AS PER THE CURRENT SLAB</p>
+                  <div className="text-[5.5pt] text-gray-300 font-bold uppercase tracking-[0.05em] mt-2 opacity-90 leading-relaxed">
+                    INCLUSIVE OF GST, TRANSPORTATION & STANDARD INSTALLATION
+                    {isWithoutStructure && (
+                      <>
+                        <br />
+                        <span className="text-red-500 font-black text-[5pt] leading-none">
+                          {hasCustomizedStructureCost ? `Customized Structure Cost Included ${customizedStructureGst.toLowerCase()}` : 'Customized Structure cost additionally chargeable as per site condition'}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div className="text-right min-w-fit flex flex-col justify-center">
+                  <span className="text-[26pt] font-black text-white leading-none">₹ {grandTotal.toLocaleString('en-IN')}</span>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
 
-        <div className="mt-auto w-full flex justify-center px-10 mb-2">
+        <div className="mt-auto w-full flex justify-between items-end px-10 mb-2">
           <div className="pb-4">
             <p className="text-[7pt] font-black text-red-600 uppercase tracking-[0.2em] border border-red-100 px-3 py-1.5 rounded-lg bg-red-50-30">
               Check TERMS AND CONDITIONS PAGE 3
             </p>
           </div>
+          {quotation.quoteType === 'Loan' && (
+            <div className="flex justify-end">
+              <CompanySealBlock imageBottomClass="bottom-2" />
+            </div>
+          )}
         </div>
         <PageFooter pageNum={1} noMarginTop />
       </div>
