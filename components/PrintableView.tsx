@@ -337,8 +337,8 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
             )}
 
             {quotation.quoteType !== 'Loan' && (
-              <div className="pricing-summary-row h-auto py-4">
-                <div className="flex-1 pr-4 overflow-visible min-w-0 text-left">
+              <div className="pricing-summary-row min-h-[56pt] py-5 px-6">
+                <div className="flex-1 pr-4 overflow-visible min-w-0 text-left flex flex-col justify-center">
                   <p className="text-[7pt] font-[900] uppercase tracking-tighter leading-tight whitespace-nowrap">CUSTOMER EFFECTIVE COST AFTER SUBSIDY - INCLUDING KSEB CHARGES AS PER THE CURRENT SLAB</p>
                   <div className="text-[5.5pt] text-gray-300 font-bold uppercase tracking-[0.05em] mt-2 opacity-90 leading-relaxed">
                     INCLUSIVE OF GST, TRANSPORTATION & STANDARD INSTALLATION
@@ -352,7 +352,7 @@ const PrintableView: React.FC<Props> = ({ quotation, state }) => {
                     )}
                   </div>
                 </div>
-                <div className="text-right min-w-fit flex flex-col justify-center">
+                <div className="text-right min-w-fit flex flex-col justify-center items-end">
                   <span className="text-[26pt] font-black text-white leading-none">₹ {grandTotal.toLocaleString('en-IN')}</span>
                 </div>
               </div>

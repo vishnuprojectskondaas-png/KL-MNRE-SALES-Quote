@@ -300,10 +300,12 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8pt 25pt;
+  padding: 16pt 24pt;
+  min-height: 56pt;
   border-radius: 6pt;
   width: 100%;
   margin-top: 10pt;
+  box-sizing: border-box;
 }
 
 .modern-card {
