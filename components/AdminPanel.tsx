@@ -2,7 +2,6 @@ import React from 'react';
 import { AppState, Quotation, User } from '../types';
 import { Edit3, Trash2, Search, Printer, FileSpreadsheet, Download, FileDown, Layers } from 'lucide-react';
 import { format } from 'date-fns';
-import * as XLSX from 'xlsx';
 
 interface Props {
   state: AppState;
@@ -20,16 +19,22 @@ const AdminPanel: React.FC<Props> = ({ state, currentUser, onEdit, onPrint, onDo
   const isAdmin = currentUser.role === 'admin';
   const canModifyQuotes = currentUser.role === 'admin' || currentUser.role === 'TL';
 
-  const filteredQuotes = state.quotations.filter(q => {
-    const permissionMatch = isAdmin ? true : q.createdBy === currentUser.id;
-    const searchMatch = 
-      q.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      q.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (q.projectType && q.projectType.toLowerCase().includes(searchTerm.toLowerCase()));
-    return permissionMatch && searchMatch;
-  }).sort((a,b) => b.id.localeCompare(a.id));
+  const filteredQuotes = React.useMemo(() => {
+    const term = searchTerm.toLowerCase().trim();
+    return state.quotations.filter(q => {
+      const permissionMatch = isAdmin ? true : q.createdBy === currentUser.id;
+      if (!permissionMatch) return false;
+      if (!term) return true;
+      return (
+        q.id.toLowerCase().includes(term) ||
+        q.customerName.toLowerCase().includes(term) ||
+        (q.projectType && q.projectType.toLowerCase().includes(term))
+      );
+    }).sort((a, b) => b.id.localeCompare(a.id));
+  }, [state.quotations, isAdmin, currentUser.id, searchTerm]);
 
-  const exportToExcel = (q: Quotation) => {
+  const exportToExcel = async (q: Quotation) => {
+    const XLSX = await import('xlsx');
     const afterDiscount = q.pricing.actualPlantCost - q.pricing.discount;
     const afterSubsidy = afterDiscount - q.pricing.subsidyAmount;
     const finalTotal = afterSubsidy + q.pricing.ksebCharges + q.pricing.customizedStructureCost + q.pricing.additionalMaterialCost + (q.pricing.netMeterCost || 0);
@@ -65,7 +70,8 @@ const AdminPanel: React.FC<Props> = ({ state, currentUser, onEdit, onPrint, onDo
     XLSX.writeFile(wb, `${q.id}_Solar_Quotation.xlsx`);
   };
 
-  const exportDashboardReport = () => {
+  const exportDashboardReport = async () => {
+    const XLSX = await import('xlsx');
     const reportData = state.quotations.map(q => {
         const afterDiscount = q.pricing.actualPlantCost - q.pricing.discount;
         const afterSubsidy = afterDiscount - q.pricing.subsidyAmount;
@@ -124,12 +130,7 @@ const AdminPanel: React.FC<Props> = ({ state, currentUser, onEdit, onPrint, onDo
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredQuotes.map(q => {
-                  const afterDiscount = q.pricing.actualPlantCost - q.pricing.discount;
-                  const afterSubsidy = afterDiscount - q.pricing.subsidyAmount;
-                  const finalTotal = afterSubsidy + q.pricing.ksebCharges + q.pricing.customizedStructureCost + q.pricing.additionalMaterialCost + (q.pricing.netMeterCost || 0);
-                  
-                  return (
+              {filteredQuotes.map(q => (
                 <tr key={q.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-black text-red-600">{q.id}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -164,10 +165,10 @@ const AdminPanel: React.FC<Props> = ({ state, currentUser, onEdit, onPrint, onDo
                     </div>
                   </td>
                 </tr>
-              )})}
+              ))}
               {filteredQuotes.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-gray-400 font-bold uppercase tracking-widest">No quotations found matching criteria</td>
+                  <td colSpan={4} className="px-6 py-12 text-center text-gray-400 font-bold uppercase tracking-widest">No quotations found matching criteria</td>
                 </tr>
               )}
             </tbody>

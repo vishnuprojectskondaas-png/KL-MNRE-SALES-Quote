@@ -1,5 +1,5 @@
 import React from 'react';
-import { AppState, Quotation, WarrantyPackage } from '../types';
+import { AppState, Quotation } from '../types';
 import { format } from 'date-fns';
 
 interface Props {

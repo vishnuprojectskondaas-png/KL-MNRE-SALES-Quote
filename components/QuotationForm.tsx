@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { AppState, Quotation, BOMItem, BOMTemplate, ProductPricing, User, PROJECT_TYPES, STRUCTURE_TYPES, PANEL_TYPES, QUOTE_STATUSES, ProjectType, StructureType, PanelType, QuoteStatus } from '../types';
-import { Save, X, Plus, Package, Filter, ChevronRight } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { AppState, Quotation, BOMItem, User, PROJECT_TYPES, STRUCTURE_TYPES, PANEL_TYPES, QUOTE_STATUSES, ProjectType, StructureType, PanelType, QuoteStatus } from '../types';
+import { Save, Package, Filter, ChevronRight } from 'lucide-react';
 
 interface Props {
   state: AppState;
@@ -54,13 +54,15 @@ const QuotationForm: React.FC<Props> = ({ state, currentUser, editData, onSave, 
   const canChangeStatus = currentUser.role === 'admin' || currentUser.role === 'TL';
 
   // Filter products based on selected categories
-  const filteredProducts = state.productDescriptions
-    .filter(p => 
-      p.projectType === formData.projectType && 
-      p.structureType === formData.structureType &&
-      p.panelType === formData.panelType
-    )
-    .sort((a, b) => (a.order || 0) - (b.order || 0));
+  const filteredProducts = useMemo(() => {
+    return state.productDescriptions
+      .filter(p => 
+        p.projectType === formData.projectType && 
+        p.structureType === formData.structureType &&
+        p.panelType === formData.panelType
+      )
+      .sort((a, b) => (a.order || 0) - (b.order || 0));
+  }, [state.productDescriptions, formData.projectType, formData.structureType, formData.panelType]);
 
   const handleCategoryChange = (updates: Partial<Quotation>) => {
     setFormData(prev => ({
@@ -396,7 +398,7 @@ const QuotationForm: React.FC<Props> = ({ state, currentUser, editData, onSave, 
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {formData.bom && formData.bom.length > 0 ? formData.bom.map((item, idx) => (
+                {formData.bom && formData.bom.length > 0 ? formData.bom.map((item) => (
                   <tr key={item.id}>
                     <td className="p-2"><input className="w-full text-xs border-0 bg-transparent focus:ring-0 cursor-default text-gray-700 font-bold" value={item.product || ''} readOnly tabIndex={-1} /></td>
                     <td className="p-2"><input className="w-full text-xs border-0 bg-transparent focus:ring-0 cursor-default text-gray-700" value={item.uom || ''} readOnly tabIndex={-1} /></td>
